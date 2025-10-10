@@ -15,10 +15,8 @@ dependencies:
   cachecontrol: ^0.0.1
   dart_jsonwebtoken: ^2.12.1
   glob: ^2.1.3
-  horda_core: # ^0.14.0
-    path: ../dart_core
-  horda_server: # ^0.14.0
-    path: ../dart_server
+  horda_core: ^0.15.0
+  horda_server: ^0.15.0
   http: ^1.1.2
   json_annotation: ^4.8.1
   logging: ^1.2.0
