@@ -171,7 +171,12 @@ class AnalyzedPackage {
 
     print('Failed to find state for $actorName');
 
-    throw 'state not found';
+    throw Exception(
+      'Failed to find state for $actorName.'
+      '\nWhen creating an entity make sure to create a state.'
+      '\nThe state\'s class name must follow the pattern [ENTITY_NAME]EntityState.'
+      '\nE.g.: UserEntity -> UserEntityState, ProductEntity -> ProductEntityState.',
+    );
   }
 
   /// ViewGroup classes follow the naming pattern "SomeViewGroup", where word "Entity" is omitted.
@@ -186,10 +191,15 @@ class AnalyzedPackage {
       return viewGroups.values.firstWhere(
         (vg) => vg.name == '${prefix}ViewGroup',
       );
-    } catch (e, s) {
-      print('Failed to find viewgroup for $actorName, prefix $prefix: $e');
-      print('Stack:\n$s');
-      rethrow;
+    } on StateError catch (e, _) {
+      // print('Failed to find viewgroup for $actorName, prefix $prefix: $e');
+      // print('Stack:\n$s');
+      throw Exception(
+        'Failed to find view group for $actorName.'
+        '\nWhen creating an entity make sure to create a view group.'
+        '\nThe view group\'s class name must follow the pattern [ENTITY_NAME]ViewGroup'
+        '\nE.g.: UserEntity -> UserViewGroup, ProductEntity -> ProductViewGroup.',
+      );
     }
   }
 
