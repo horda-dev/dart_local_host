@@ -37,7 +37,7 @@ dart run build_runner build
 ```
 
 ### 3. Run the Application
-After generating the `main.dart` file, you can run the local host:
+After generating the `main.dart` file, you can run the local host in VSCode by pressing F5. Alternatively, you can run it from the command line as usual:
 ```bash
 dart bin/main.dart
 ```
@@ -49,7 +49,7 @@ To connect your client application to the local host, use the following WebSocke
 ws://localhost:8080/client
 ```
 
-**Note for Android Emulator Users:**
+**Note for Android Emulators:**
 If you are running your client application on an Android emulator, `localhost` refers to the emulator's own loopback interface, not your development machine. To connect to the local host running on your development machine from an Android emulator, you must use the special alias `10.0.2.2` instead of `localhost`.
 
 Therefore, the WebSocket address for Android emulators would be:
