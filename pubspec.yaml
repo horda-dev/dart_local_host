@@ -1,0 +1,39 @@
+name: horda_local_host
+description: Local host which allows running server packages developed with horda_server.
+version: 0.1.0
+homepage: https://github.com/horda-dev/dart_local_host
+publish_to: https://pub.dev/packages/horda_local_host
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  analyzer: ^8.2.0
+  async: ^2.11.0
+  build: ^4.0.2
+  build_runner: ^2.9.0
+  cachecontrol: ^0.0.1
+  dart_jsonwebtoken: ^2.12.1
+  glob: ^2.1.3
+  horda_core: ^0.15.0
+  horda_server: ^0.15.0
+  http: ^1.1.2
+  json_annotation: ^4.8.1
+  logging: ^1.2.0
+  path: ^1.9.1
+  quiver: ^3.2.1
+  redis: ^4.0.0
+  rxdart: ^0.27.7
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  shelf_web_socket: ^1.0.4
+  source_gen: ^4.0.2
+  stack_trace: ^1.12.1
+  web_socket_channel: ^2.4.0
+  xid: ^1.0.12
+
+dev_dependencies:
+  json_serializable: ^6.7.1
+  lints: ^2.1.0
+  mockito: ^5.4.3
+  test: ^1.24.0
