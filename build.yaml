@@ -1,0 +1,13 @@
+targets:
+  $default:
+    builders:
+      horda_local_host|mainBuilder:
+        enabled: true
+
+builders:
+  mainBuilder:
+    import: "package:horda_local_host/src/main_builder/builder.dart"
+    builder_factories: ["mainBuilder"]
+    build_extensions: { "$package$": ["bin/main.dart"] }
+    auto_apply: root_package
+    build_to: source
