@@ -2,7 +2,6 @@ name: horda_local_host
 description: Local host which allows running server packages developed with horda_server.
 version: 0.1.0
 homepage: https://github.com/horda-dev/dart_local_host
-publish_to: https://pub.dev/packages/horda_local_host
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
