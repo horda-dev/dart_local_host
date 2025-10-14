@@ -1,6 +1,13 @@
-# Horda Local Host
+# Horda Local Emulator
 
-`horda_local_host` is a Dart project designed to act as a local host for running server packages developed with the `horda_server` framework. It leverages `build_runner` for code generation, specifically to create a `bin/main.dart` file that registers and launches "entities", "services", and "processes" defined within the project. This project is a core component for for local development and testing applications built on the Horda framework.
+Run the entire Horda platform on your development machine. Prototype, develop and test your Horda backend locally and deploy it to the Horda cloud platform once it's ready for production usage.
+
+`horda_local_host` emulates the full Horda backend locally, giving you:
+- **Complete feature parity**: Entity states, view groups, services, processes, and real-time data synchronization
+- **Instant feedback**: Connect your Flutter app directly to your local backend via WebSocket
+- **Run in VSCode**: Just press **F5** in Visual Studio Code with your Horda backend package open and start developing
+
+Perfect for local development, testing, and iterating on your Horda applications without touching the cloud.
 
 ## Usage
 
