@@ -113,6 +113,15 @@ final class HordaServerSystem {
     final defaultViews = DefaultViews();
     defaultViewGroup.initViews(defaultViews);
     viewStore.setViewDefaults(entity.name, defaultViews.defaultValues);
+
+    // Pre-create singleton entities immediately with ID = kSingletonId
+    if (entity.singleton != null) {
+      logger.fine(
+        'Pre-creating singleton entity ${entity.name} with ID=$kSingletonId',
+      );
+      _startEntityHost(kSingletonId, entity.name);
+      logger.info('Singleton entity ${entity.name} pre-created and ready with ID=$kSingletonId');
+    }
   }
 
   void stopEntities() {

@@ -26,6 +26,22 @@ class EntityHost<S extends EntityState> {
       _system.changeIdTracker,
     );
 
+    // Check if this is a singleton entity
+    final singletonState = entity.singleton;
+    if (singletonState != null) {
+      // Singleton entities must use the constant ID 'singleton'
+      if (_entityId != kSingletonId) {
+        throw HordaLocalHostError(
+          'Singleton entity ${entity.name} must be addressed by the constant ID "$kSingletonId". '
+          'Expected ID: "$kSingletonId", but got: "$_entityId". '
+          'Only one singleton entity can exist in the system.',
+        );
+      }
+      _state = singletonState;
+      _initSingletonViews();
+      logger.fine('id: $_entityId detected singleton, initializing immediately');
+    }
+
     _sub = _system
         .entityCommands(
           entity.name,
@@ -57,6 +73,21 @@ class EntityHost<S extends EntityState> {
       name: '',
       query: query,
     );
+  }
+
+  /// Initializes views for singleton entities using default values.
+  Future<void> _initSingletonViews() async {
+    logger.fine('id: $_entityId initializing singleton views...');
+
+    final defaultViewData = _viewGroupProjectors.getDefaultViewData();
+
+    await _system.viewStore.initEntityViews(
+      entity.name,
+      _entityId,
+      defaultViewData,
+    );
+
+    logger.info('id: $_entityId initialized singleton with default views');
   }
 
   void _handleCommand(CommandEnvelop env) {
@@ -333,6 +364,15 @@ class _ViewGroupProjectors implements EntityViewGroupProjectors {
   @override
   void add<E extends RemoteEvent>(EntityViewGroupProjector<E> projector) {
     _projectors[E] = projector;
+  }
+
+  /// Returns default view data for singleton entities.
+  /// Uses the viewGroup's default values instead of event-based initialization.
+  List<InitViewData> getDefaultViewData() {
+    final views = _ViewGroup(entityId, entityName, changeIdTracker);
+    viewGroupDef.initViews(views);
+    views.setEntityId(entityId);
+    return views.initValues().toList();
   }
 
   List<InitViewData> projectInit(RemoteEvent event) {
