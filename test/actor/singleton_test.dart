@@ -243,4 +243,97 @@ void main() {
     final countView = result.views['count'] as ValueQueryResult;
     expect(countView.value, equals(10));
   });
+
+  test('singleton entity cannot add init handlers', () async {
+    // Create an entity that tries to add init handlers
+    final entity = InvalidSingletonEntityWithInitHandler();
+
+    expect(
+      () => HordaServerTestSystem().registerEntity<SingletonState>(
+        entity,
+        SingletonViewGroup(),
+      ),
+      throwsA(
+        isA<HordaLocalHostError>().having(
+          (e) => e.message,
+          'message',
+          contains('Singleton entity ${entity.name} cannot add init handlers'),
+        ),
+      ),
+    );
+  });
+
+  test('singleton entity cannot add init projectors', () async {
+    // Create an entity that tries to add init projectors
+    final entity = InvalidSingletonEntityWithInitProjector();
+
+    expect(
+      () => HordaServerTestSystem().registerEntity<SingletonState>(
+        entity,
+        InvalidSingletonViewGroupWithInitProjector(),
+      ),
+      throwsA(
+        isA<HordaLocalHostError>().having(
+          (e) => e.message,
+          'message',
+          contains(
+              'Singleton entity view group for ${entity.name} cannot add init projectors'),
+        ),
+      ),
+    );
+  });
+}
+
+// Invalid singleton entity that attempts to add init handler
+class InvalidSingletonEntityWithInitHandler extends Entity<SingletonState> {
+  @override
+  SingletonState? get singleton => SingletonState(count: 42);
+
+  @override
+  void initMigrations(EntityStateMigrations migrations) {}
+
+  @override
+  void initHandlers(EntityHandlers<SingletonState> handlers) {
+    // This should throw because it's a singleton
+    handlers.addInit<IncrementCommand, IncrementedEvent>(
+      (cmd, context) async => IncrementedEvent(1),
+      IncrementCommand.fromJson,
+      (event) => SingletonState(count: 0),
+    );
+  }
+}
+
+// Invalid singleton entity with init projector
+class InvalidSingletonEntityWithInitProjector extends Entity<SingletonState> {
+  @override
+  SingletonState? get singleton => SingletonState(count: 42);
+
+  @override
+  void initMigrations(EntityStateMigrations migrations) {}
+
+  @override
+  void initHandlers(EntityHandlers<SingletonState> handlers) {
+    // No init handler, that's fine
+  }
+}
+
+// Invalid view group that attempts to add init projector
+class InvalidSingletonViewGroupWithInitProjector implements EntityViewGroup {
+  InvalidSingletonViewGroupWithInitProjector()
+      : count = ValueView<int>(name: 'count', value: 10);
+
+  late final ValueView<int> count;
+
+  @override
+  void initViews(ViewGroup views) {
+    views.add(count);
+  }
+
+  @override
+  void initProjectors(EntityViewGroupProjectors projectors) {
+    // This should throw because it's a singleton
+    projectors.addInit<IncrementedEvent>(
+      (event) => SingletonViewGroup(),
+    );
+  }
 }
