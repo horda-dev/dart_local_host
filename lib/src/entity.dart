@@ -16,7 +16,11 @@ class EntityHost<S extends EntityState> {
   ) : logger = Logger('Horda.Entity.${entity.runtimeType}') {
     logger.fine('id: $_entityId starting...');
 
-    _handlers = _EntityHandlers<S>(entity.name, this, logger);
+    // Check if this is a singleton entity first
+    final singletonState = entity.singleton;
+    _isSingleton = singletonState != null;
+
+    _handlers = _EntityHandlers<S>(entity.name, this, logger, _isSingleton);
     entity.initHandlers(_handlers);
 
     _viewGroupProjectors = _ViewGroupProjectors(
@@ -24,7 +28,24 @@ class EntityHost<S extends EntityState> {
       entity.name,
       viewGroup,
       _system.changeIdTracker,
+      _isSingleton,
     );
+
+    if (_isSingleton) {
+      // Singleton entities must use the constant ID 'singleton'
+      if (_entityId != kSingletonId) {
+        throw HordaLocalHostError(
+          'Singleton entity ${entity.name} must be addressed by the constant ID "$kSingletonId". '
+          'Expected ID: "$kSingletonId", but got: "$_entityId". '
+          'Only one singleton entity can exist in the system.',
+        );
+      }
+      _state = singletonState;
+      _initSingletonViews();
+      logger.fine(
+        'id: $_entityId detected singleton, initializing immediately',
+      );
+    }
 
     _sub = _system
         .entityCommands(
@@ -42,7 +63,16 @@ class EntityHost<S extends EntityState> {
 
   final Logger logger;
 
+  late final bool _isSingleton;
+
   void stop() {
+    if (_isSingleton) {
+      throw HordaLocalHostError(
+        'Cannot stop singleton entity ${entity.name}. '
+        'Singleton entities are pre-initialized at system startup and cannot be stopped.',
+      );
+    }
+
     logger.fine('id: $_entityId stopping...');
 
     _sub.cancel();
@@ -57,6 +87,21 @@ class EntityHost<S extends EntityState> {
       name: '',
       query: query,
     );
+  }
+
+  /// Initializes views for singleton entities using default values.
+  Future<void> _initSingletonViews() async {
+    logger.fine('id: $_entityId initializing singleton views...');
+
+    final defaultViewData = _viewGroupProjectors.getDefaultViewData();
+
+    await _system.viewStore.initEntityViews(
+      entity.name,
+      _entityId,
+      defaultViewData,
+    );
+
+    logger.info('id: $_entityId initialized singleton with default views');
   }
 
   void _handleCommand(CommandEnvelop env) {
@@ -159,7 +204,7 @@ class EntityHost<S extends EntityState> {
 }
 
 class _EntityHandlers<S extends EntityState> implements EntityHandlers<S> {
-  _EntityHandlers(this.entityName, this.host, this.logger);
+  _EntityHandlers(this.entityName, this.host, this.logger, this.isSingleton);
 
   final EntityHost host;
 
@@ -167,12 +212,22 @@ class _EntityHandlers<S extends EntityState> implements EntityHandlers<S> {
 
   final Logger logger;
 
+  final bool isSingleton;
+
   @override
   void addInit<C extends RemoteCommand, E extends RemoteEvent>(
     EntityInitHandler<C, E> handler,
     FromJsonFun<C> cmdFromJson,
     EntityStateInitProjector<E> stateInit,
   ) {
+    if (isSingleton) {
+      throw HordaLocalHostError(
+        'Singleton entity $entityName cannot add init handlers. '
+        'Singleton entities are pre-initialized using the Entity.singleton getter '
+        'and do not support initialization commands.',
+      );
+    }
+
     logger.fine('Adding init handler for $C');
 
     _entityInitHandler[C] = handler;
@@ -301,7 +356,7 @@ class _EntityContext implements EntityContext {
   @override
   void stop() {
     host.stop();
-    host._system.removeEntity(entityId);
+    host._system.removeEntity(host.entity.name, entityId);
   }
 
   // Not exposed in EntityContext API yet.
@@ -314,6 +369,7 @@ class _ViewGroupProjectors implements EntityViewGroupProjectors {
     this.entityName,
     this.viewGroupDef,
     this.changeIdTracker,
+    this.isSingleton,
   ) : _views = _ViewGroup(entityId, entityName, changeIdTracker) {
     viewGroupDef.initProjectors(this);
     viewGroupDef.initViews(_views);
@@ -324,15 +380,32 @@ class _ViewGroupProjectors implements EntityViewGroupProjectors {
 
   final EntityViewGroup viewGroupDef;
   final ChangeIdTracker changeIdTracker;
+  final bool isSingleton;
 
   @override
   void addInit<E extends RemoteEvent>(EntityViewGroupInit<E> projector) {
+    if (isSingleton) {
+      throw HordaLocalHostError(
+        'Singleton entity view group for $entityName cannot add init projectors. '
+        'Singleton entities use default view values instead of event-based initialization.',
+      );
+    }
+
     _initProjector[E] = projector;
   }
 
   @override
   void add<E extends RemoteEvent>(EntityViewGroupProjector<E> projector) {
     _projectors[E] = projector;
+  }
+
+  /// Returns default view data for singleton entities.
+  /// Uses the viewGroup's default values instead of event-based initialization.
+  List<InitViewData> getDefaultViewData() {
+    final views = _ViewGroup(entityId, entityName, changeIdTracker);
+    viewGroupDef.initViews(views);
+    views.setEntityId(entityId);
+    return views.initValues().toList();
   }
 
   List<InitViewData> projectInit(RemoteEvent event) {

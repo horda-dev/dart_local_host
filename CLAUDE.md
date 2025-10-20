@@ -21,6 +21,9 @@ Note: `build_runner` only regenerates when it detects changes. Manual modificati
 - **Run tests**: `dart test`
 - **Run specific test**: `dart test test/path/to/test_file.dart`
 
+### Environment Variables
+- **PORT**: HTTP server port (default: 8080)
+
 ### Client Connection
 - **Local connection**: `ws://localhost:8080/client`
 - **Android emulator**: `ws://10.0.2.2:8080/client` (uses special alias to reach host machine)
@@ -47,6 +50,11 @@ Key files:
 - `generator.dart`: Generates the main.dart file content
 - `type_checker.dart`: Uses dart analyzer to identify Horda framework types
 
+**Naming Conventions**: The builder expects strict naming patterns:
+- Entity: `UserEntity` → State: `UserEntityState` (or `UserState`) → ViewGroup: `UserViewGroup`
+- Pattern: If entity ends with "Entity", the word "Entity" is removed from ViewGroup name
+- The builder will throw exceptions if it cannot find matching states or view groups
+
 ### Core System Architecture (lib/src/)
 
 **HordaServerSystem** (system.dart) is the central orchestrator that:
@@ -54,7 +62,7 @@ Key files:
 - Maintains in-memory stores (MessageStore, ViewStore, KeyValueStore)
 - Tracks change IDs for view synchronization
 - Starts the HTTP server for WebSocket connections
-- Provides a tick mechanism for scheduled operations via CronService
+- Provides a tick mechanism for scheduled operations via CronService (fires every 1 second)
 
 **EntityHost** (entity.dart) manages individual entity instances:
 - Each entity has a unique ID and maintains its own state
@@ -62,11 +70,13 @@ Key files:
 - State changes trigger view projections which generate ChangeEnvelops
 - Supports both init handlers (creating new entities) and regular handlers
 - Entity lifecycle: receive command → invoke handler → project state → update views → publish events
+- Entities are lazily instantiated when first command is received
 
 **ServiceHost** (service.dart) wraps stateless services:
 - Services handle commands and return events
 - No state management or queuing (processes commands directly)
 - Registers command handlers with type-safe factories
+- Services are registered at system startup
 
 **ProcessHost** (process.dart) handles event-driven workflows:
 - Listens to dispatched events from the system
@@ -80,6 +90,7 @@ Key files:
 - WsSession handles bidirectional communication with clients
 - Message types: Query, SendCommand, CallCommand, DispatchEvent, SubscribeViews, UnsubscribeViews
 - View subscriptions stream ChangeEnvelops to keep clients synchronized
+- WebSocket ping interval: 5 seconds
 
 ### Message Flow
 
@@ -109,13 +120,31 @@ Test organization:
 ## Important Patterns
 
 ### Entity State Management
-Entities process commands one at a time using an inbox queue to ensure consistency. The _idle flag prevents concurrent command processing.
+Entities process commands one at a time using an inbox queue to ensure consistency. The `_idle` flag prevents concurrent command processing. Entities are lazily created on first command.
+
+### Entity vs Service: When to Use Each
+- **Use Entity** when you need:
+  - State persistence across multiple commands
+  - Sequential command processing per entity ID
+  - View projections and real-time updates
+  - Example: User accounts, shopping carts, chat rooms
+
+- **Use Service** when you need:
+  - Stateless operations
+  - Simple request-response patterns
+  - No view projections needed
+  - Example: Authentication, calculations, external API calls
 
 ### View Projections
 View changes are packaged into ChangeEnvelops with monotonically increasing changeIds tracked per view/attribute. This enables clients to resume subscriptions from a specific point.
 
 ### Error Handling
-Commands that fail produce FluirErrorEvent instead of throwing, allowing clients to handle errors gracefully. JSON parsing errors produce detailed HordaLocalHostJsonError with file locations.
+Commands that fail produce `FluirErrorEvent` instead of throwing, allowing clients to handle errors gracefully. JSON parsing errors produce detailed `HordaLocalHostJsonError` with file locations.
 
 ### Authentication
 Firebase JWT tokens are extracted from the `firebaseIdToken` header. Expired tokens result in incognito connections. Incognito users can query and dispatch events but cannot send commands.
+
+## Key Timeouts
+- **Entity command call**: 500ms
+- **Service command call**: 10 seconds
+- **Event dispatch**: 10 seconds

@@ -1,0 +1,22 @@
+# https://github.com/marketplace/actions/setup-dart-sdk
+name: build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.9.1'
+
+      - run: dart pub get
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: dart analyze
+      - run: dart test
