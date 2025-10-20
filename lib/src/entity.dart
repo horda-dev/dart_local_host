@@ -345,7 +345,7 @@ class _EntityContext implements EntityContext {
   @override
   void stop() {
     host.stop();
-    host._system.removeEntity(entityId);
+    host._system.removeEntity(host.entity.name, entityId);
   }
 
   // Not exposed in EntityContext API yet.

@@ -282,6 +282,205 @@ void main() {
       ),
     );
   });
+
+  test('multiple singleton entities can coexist', () async {
+    var system = HordaServerTestSystem();
+
+    // Register first singleton entity
+    final configEntity = ConfigEntity();
+    system.registerEntity<ConfigState>(
+      configEntity,
+      ConfigViewGroup(),
+    );
+
+    // Register second singleton entity (should not conflict)
+    final settingsEntity = SettingsEntity();
+    system.registerEntity<SettingsState>(
+      settingsEntity,
+      SettingsViewGroup(),
+    );
+
+    await system.start();
+
+    // Both singletons should be accessible with kSingletonId
+    // but they are stored separately internally
+    system.sendEntity(
+      configEntity.name,
+      kSingletonId,
+      'system',
+      UpdateConfigCommand('value1'),
+    );
+
+    // Wait for first event
+    final configEvent = await system
+        .entityEvents(entityName: configEntity.name, entityId: kSingletonId)
+        .first;
+    expect(configEvent.type, equals('ConfigUpdatedEvent'));
+
+    system.sendEntity(
+      settingsEntity.name,
+      kSingletonId,
+      'system',
+      UpdateSettingsCommand('value2'),
+    );
+
+    // Wait for second event
+    final settingsEvent = await system
+        .entityEvents(entityName: settingsEntity.name, entityId: kSingletonId)
+        .first;
+    expect(settingsEvent.type, equals('SettingsUpdatedEvent'));
+  });
+}
+
+// Second singleton entity for testing multiple singletons
+class UpdateConfigCommand extends RemoteCommand {
+  UpdateConfigCommand(this.value);
+  final String value;
+
+  factory UpdateConfigCommand.fromJson(Map<String, dynamic> json) =>
+      UpdateConfigCommand(json['value']);
+
+  @override
+  Map<String, dynamic> toJson() => {'value': value};
+}
+
+class ConfigUpdatedEvent extends RemoteEvent {
+  ConfigUpdatedEvent(this.value);
+  final String value;
+
+  factory ConfigUpdatedEvent.fromJson(Map<String, dynamic> json) =>
+      ConfigUpdatedEvent(json['value']);
+
+  @override
+  Map<String, dynamic> toJson() => {'value': value};
+}
+
+class ConfigState implements EntityState {
+  ConfigState({this.value = 'default'});
+  String value;
+
+  @override
+  Map<String, dynamic> toJson() => {'value': value};
+
+  @override
+  void project(RemoteEvent event) {
+    if (event is ConfigUpdatedEvent) {
+      value = event.value;
+    }
+  }
+}
+
+class ConfigEntity extends Entity<ConfigState> {
+  @override
+  ConfigState? get singleton => ConfigState(value: 'initial-config');
+
+  @override
+  void initMigrations(EntityStateMigrations migrations) {}
+
+  Future<ConfigUpdatedEvent> handleUpdate(
+    UpdateConfigCommand cmd,
+    ConfigState state,
+    EntityContext context,
+  ) async {
+    return ConfigUpdatedEvent(cmd.value);
+  }
+
+  @override
+  void initHandlers(EntityHandlers<ConfigState> handlers) {
+    handlers.add<UpdateConfigCommand>(
+      handleUpdate,
+      UpdateConfigCommand.fromJson,
+    );
+  }
+}
+
+class ConfigViewGroup implements EntityViewGroup {
+  ConfigViewGroup() : value = ValueView<String>(name: 'value', value: 'default');
+  late final ValueView<String> value;
+
+  @override
+  void initViews(ViewGroup views) {
+    views.add(value);
+  }
+
+  @override
+  void initProjectors(EntityViewGroupProjectors projectors) {}
+}
+
+// Third singleton entity for testing
+class UpdateSettingsCommand extends RemoteCommand {
+  UpdateSettingsCommand(this.value);
+  final String value;
+
+  factory UpdateSettingsCommand.fromJson(Map<String, dynamic> json) =>
+      UpdateSettingsCommand(json['value']);
+
+  @override
+  Map<String, dynamic> toJson() => {'value': value};
+}
+
+class SettingsUpdatedEvent extends RemoteEvent {
+  SettingsUpdatedEvent(this.value);
+  final String value;
+
+  factory SettingsUpdatedEvent.fromJson(Map<String, dynamic> json) =>
+      SettingsUpdatedEvent(json['value']);
+
+  @override
+  Map<String, dynamic> toJson() => {'value': value};
+}
+
+class SettingsState implements EntityState {
+  SettingsState({this.value = 'default'});
+  String value;
+
+  @override
+  Map<String, dynamic> toJson() => {'value': value};
+
+  @override
+  void project(RemoteEvent event) {
+    if (event is SettingsUpdatedEvent) {
+      value = event.value;
+    }
+  }
+}
+
+class SettingsEntity extends Entity<SettingsState> {
+  @override
+  SettingsState? get singleton => SettingsState(value: 'initial-settings');
+
+  @override
+  void initMigrations(EntityStateMigrations migrations) {}
+
+  Future<SettingsUpdatedEvent> handleUpdate(
+    UpdateSettingsCommand cmd,
+    SettingsState state,
+    EntityContext context,
+  ) async {
+    return SettingsUpdatedEvent(cmd.value);
+  }
+
+  @override
+  void initHandlers(EntityHandlers<SettingsState> handlers) {
+    handlers.add<UpdateSettingsCommand>(
+      handleUpdate,
+      UpdateSettingsCommand.fromJson,
+    );
+  }
+}
+
+class SettingsViewGroup implements EntityViewGroup {
+  SettingsViewGroup()
+      : value = ValueView<String>(name: 'value', value: 'default');
+  late final ValueView<String> value;
+
+  @override
+  void initViews(ViewGroup views) {
+    views.add(value);
+  }
+
+  @override
+  void initProjectors(EntityViewGroupProjectors projectors) {}
 }
 
 // Invalid singleton entity that attempts to add init handler

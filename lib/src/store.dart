@@ -8,6 +8,15 @@ import 'log.dart';
 import 'process.dart';
 import 'system.dart';
 
+/// Wrapper for entity commands that includes the entity name for routing.
+/// This is needed to support multiple singleton entities with the same ID.
+class _EntityCommandEnvelope {
+  _EntityCommandEnvelope(this.entityName, this.command);
+
+  final String entityName;
+  final CommandEnvelop command;
+}
+
 abstract class MessageStore {
   String sendEntity(
     String entityName,
@@ -149,8 +158,8 @@ class MemoryMessageStore implements MessageStore {
       replyClient: ReplyClient.none(),
     );
 
-    _saveCommand(env);
-    _entityCommands.add(env);
+    _saveCommand(entityName, env);
+    _entityCommands.add(_EntityCommandEnvelope(entityName, env));
     _nextCmdId += 1;
 
     logger.info('sent entity envelop $env to $entityName/$entityId from $from');
@@ -180,8 +189,8 @@ class MemoryMessageStore implements MessageStore {
       replyClient: ReplyClient.none(),
     );
 
-    _saveCommand(env);
-    _entityCommands.add(env);
+    _saveCommand(entityName, env);
+    _entityCommands.add(_EntityCommandEnvelope(entityName, env));
     _nextCmdId += 1;
 
     logger.info(
@@ -239,11 +248,15 @@ class MemoryMessageStore implements MessageStore {
   Stream<CommandEnvelop> entityCommands(String entityName, EntityId entityId) {
     logger.fine('getting entity commands for $entityName/$entityId...');
 
-    var logId = entityId;
+    // Use composite key for command storage to support multiple singletons
+    var logId = '$entityName:$entityId';
     var log = _commandStore[logId] ?? [];
 
     var past = Stream<CommandEnvelop>.fromIterable([...log]);
-    var future = _entityCommands.stream.where((e) => e.to == entityId);
+    // Filter by both entityName and entityId to support multiple singletons
+    var future = _entityCommands.stream
+        .where((e) => e.entityName == entityName && e.command.to == entityId)
+        .map((e) => e.command);
 
     logger.info(
         'got ${log.length} past entity commands for $entityName/$entityId');
@@ -295,7 +308,7 @@ class MemoryMessageStore implements MessageStore {
       replyClient: ReplyClient.none(),
     );
 
-    _saveCommand(env);
+    _saveCommand(null, env);  // null for service commands
     _serviceCommands.add(env);
     _nextCmdId += 1;
 
@@ -599,8 +612,10 @@ class MemoryMessageStore implements MessageStore {
     return env.eventId;
   }
 
-  void _saveCommand(CommandEnvelop command) {
-    var logId = command.to;
+  void _saveCommand(String? entityName, CommandEnvelop command) {
+    // For entity commands, use composite key (entityName:entityId) to support multiple singletons
+    // For service commands, entityName is null and we use just the service name
+    var logId = entityName != null ? '$entityName:${command.to}' : command.to;
     var log = _commandStore[logId] ?? [];
 
     logger.fine('saving command ${limitString(command)} to $logId...');
@@ -666,7 +681,8 @@ class MemoryMessageStore implements MessageStore {
   // unique command id to find corresponding process result
   var _nextDispatchId = 1;
 
-  final _entityCommands = StreamController<CommandEnvelop>.broadcast();
+  final _entityCommands =
+      StreamController<_EntityCommandEnvelope>.broadcast();
   final _entityEvents = StreamController<EventEnvelop>.broadcast();
   final _serviceCommands = StreamController<CommandEnvelop>.broadcast();
   final _serviceEvents = StreamController<EventEnvelop>.broadcast();

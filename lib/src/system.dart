@@ -82,8 +82,16 @@ final class HordaServerSystem {
     logger.info('server system stopped');
   }
 
+  /// Generates a unique key for entity host storage.
+  /// Combines entityName and entityId to ensure each entity type has its own ID namespace.
+  /// This allows multiple singleton entities to coexist (e.g., "ConfigEntity:singleton", "SettingsEntity:singleton").
+  String _entityHostKey(String entityName, EntityId entityId) =>
+      '$entityName:$entityId';
+
   void _startEntityHost(EntityId entityId, String entityName) {
-    if (_entityHosts.containsKey(entityId)) {
+    final key = _entityHostKey(entityName, entityId);
+
+    if (_entityHosts.containsKey(key)) {
       throw FluirError('entity host with id "$entityId" already started');
     }
 
@@ -95,7 +103,7 @@ final class HordaServerSystem {
       );
     }
 
-    _entityHosts[entityId] = factory(entityId);
+    _entityHosts[key] = factory(entityId);
   }
 
   void registerEntity<S extends EntityState>(
@@ -130,8 +138,9 @@ final class HordaServerSystem {
     }
   }
 
-  void removeEntity(EntityId entityId) {
-    _entityHosts.remove(entityId);
+  void removeEntity(String entityName, EntityId entityId) {
+    final key = _entityHostKey(entityName, entityId);
+    _entityHosts.remove(key);
   }
 
   void registerService(
@@ -171,7 +180,9 @@ final class HordaServerSystem {
     EntityId from,
     RemoteCommand cmd,
   ) {
-    if (!_entityHosts.containsKey(entityId)) {
+    final key = _entityHostKey(entityName, entityId);
+
+    if (!_entityHosts.containsKey(key)) {
       _startEntityHost(entityId, entityName);
     }
 
@@ -185,7 +196,9 @@ final class HordaServerSystem {
     String cmdType,
     Map<String, dynamic> cmdJson,
   ) {
-    if (!_entityHosts.containsKey(entityId)) {
+    final key = _entityHostKey(entityName, entityId);
+
+    if (!_entityHosts.containsKey(key)) {
       _startEntityHost(entityId, entityName);
     }
 
@@ -205,7 +218,9 @@ final class HordaServerSystem {
     required RemoteCommand cmd,
     required FromJsonFun<E> fac,
   }) {
-    if (!_entityHosts.containsKey(entityId)) {
+    final key = _entityHostKey(entityName, entityId);
+
+    if (!_entityHosts.containsKey(key)) {
       _startEntityHost(entityId, entityName);
     }
 
@@ -225,7 +240,9 @@ final class HordaServerSystem {
     required RemoteCommand cmd,
     required List<FromJsonFun<RemoteEvent>> fac,
   }) {
-    if (!_entityHosts.containsKey(entityId)) {
+    final key = _entityHostKey(entityName, entityId);
+
+    if (!_entityHosts.containsKey(key)) {
       _startEntityHost(entityId, entityName);
     }
 
