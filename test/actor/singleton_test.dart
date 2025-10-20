@@ -70,11 +70,25 @@ class SingletonEntity extends Entity<SingletonState> {
     return IncrementedEvent(state.count + 1);
   }
 
+  Future<StoppedEvent> handleStop(
+    StopCommand cmd,
+    SingletonState state,
+    EntityContext context,
+  ) async {
+    // This should throw an error for singleton entities
+    context.stop();
+    return StoppedEvent();
+  }
+
   @override
   void initHandlers(EntityHandlers<SingletonState> handlers) {
     handlers.add<IncrementCommand>(
       handleIncrement,
       IncrementCommand.fromJson,
+    );
+    handlers.add<StopCommand>(
+      handleStop,
+      StopCommand.fromJson,
     );
   }
 }
@@ -330,6 +344,53 @@ void main() {
         .first;
     expect(settingsEvent.type, equals('SettingsUpdatedEvent'));
   });
+
+  test('singleton entity cannot be stopped', () async {
+    var system = HordaServerTestSystem();
+
+    final entity = SingletonEntity();
+
+    system.registerEntity<SingletonState>(
+      entity,
+      SingletonViewGroup(),
+    );
+
+    await system.start();
+
+    // Try to call stop() on a singleton entity through a handler
+    system.sendEntity(
+      entity.name,
+      kSingletonId,
+      'system',
+      StopCommand(),
+    );
+
+    // The handler should fail with an error
+    final event = await system.entityEvents(entityId: kSingletonId).first;
+
+    expect(event.type, equals('FluirErrorEvent'));
+    expect(
+      event.event['msg'],
+      contains('Cannot stop singleton entity ${entity.name}'),
+    );
+  });
+}
+
+// Command to test stopping
+class StopCommand extends RemoteCommand {
+  StopCommand();
+  factory StopCommand.fromJson(Map<String, dynamic> json) => StopCommand();
+
+  @override
+  Map<String, dynamic> toJson() => {};
+}
+
+class StoppedEvent extends RemoteEvent {
+  StoppedEvent();
+  factory StoppedEvent.fromJson(Map<String, dynamic> json) => StoppedEvent();
+
+  @override
+  Map<String, dynamic> toJson() => {};
 }
 
 // Second singleton entity for testing multiple singletons

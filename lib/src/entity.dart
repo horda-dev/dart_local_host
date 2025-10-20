@@ -18,9 +18,9 @@ class EntityHost<S extends EntityState> {
 
     // Check if this is a singleton entity first
     final singletonState = entity.singleton;
-    final isSingleton = singletonState != null;
+    _isSingleton = singletonState != null;
 
-    _handlers = _EntityHandlers<S>(entity.name, this, logger, isSingleton);
+    _handlers = _EntityHandlers<S>(entity.name, this, logger, _isSingleton);
     entity.initHandlers(_handlers);
 
     _viewGroupProjectors = _ViewGroupProjectors(
@@ -28,10 +28,10 @@ class EntityHost<S extends EntityState> {
       entity.name,
       viewGroup,
       _system.changeIdTracker,
-      isSingleton,
+      _isSingleton,
     );
 
-    if (isSingleton) {
+    if (_isSingleton) {
       // Singleton entities must use the constant ID 'singleton'
       if (_entityId != kSingletonId) {
         throw HordaLocalHostError(
@@ -61,7 +61,16 @@ class EntityHost<S extends EntityState> {
 
   final Logger logger;
 
+  late final bool _isSingleton;
+
   void stop() {
+    if (_isSingleton) {
+      throw HordaLocalHostError(
+        'Cannot stop singleton entity ${entity.name}. '
+        'Singleton entities are pre-initialized at system startup and cannot be stopped.',
+      );
+    }
+
     logger.fine('id: $_entityId stopping...');
 
     _sub.cancel();
