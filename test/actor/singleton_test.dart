@@ -190,7 +190,9 @@ void main() {
         isA<HordaLocalHostError>().having(
           (e) => e.message,
           'message',
-          contains('Singleton entity ${entity.name} must be addressed by the constant ID "$kSingletonId"'),
+          contains(
+            'Singleton entity ${entity.name} must be addressed by the constant ID "$kSingletonId"',
+          ),
         ),
       ),
     );
@@ -456,7 +458,8 @@ class ConfigEntity extends Entity<ConfigState> {
 }
 
 class ConfigViewGroup implements EntityViewGroup {
-  ConfigViewGroup() : value = ValueView<String>(name: 'value', value: 'default');
+  ConfigViewGroup()
+      : value = ValueView<String>(name: 'value', value: 'default');
   late final ValueView<String> value;
 
   @override

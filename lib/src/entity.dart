@@ -42,7 +42,9 @@ class EntityHost<S extends EntityState> {
       }
       _state = singletonState;
       _initSingletonViews();
-      logger.fine('id: $_entityId detected singleton, initializing immediately');
+      logger.fine(
+        'id: $_entityId detected singleton, initializing immediately',
+      );
     }
 
     _sub = _system

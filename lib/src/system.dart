@@ -128,7 +128,9 @@ final class HordaServerSystem {
         'Pre-creating singleton entity ${entity.name} with ID=$kSingletonId',
       );
       _startEntityHost(kSingletonId, entity.name);
-      logger.info('Singleton entity ${entity.name} pre-created and ready with ID=$kSingletonId');
+      logger.info(
+        'Singleton entity ${entity.name} pre-created and ready with ID=$kSingletonId',
+      );
     }
   }
 

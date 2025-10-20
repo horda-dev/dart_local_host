@@ -308,7 +308,7 @@ class MemoryMessageStore implements MessageStore {
       replyClient: ReplyClient.none(),
     );
 
-    _saveCommand(null, env);  // null for service commands
+    _saveCommand(null, env); // null for service commands
     _serviceCommands.add(env);
     _nextCmdId += 1;
 
@@ -681,8 +681,7 @@ class MemoryMessageStore implements MessageStore {
   // unique command id to find corresponding process result
   var _nextDispatchId = 1;
 
-  final _entityCommands =
-      StreamController<_EntityCommandEnvelope>.broadcast();
+  final _entityCommands = StreamController<_EntityCommandEnvelope>.broadcast();
   final _entityEvents = StreamController<EventEnvelop>.broadcast();
   final _serviceCommands = StreamController<CommandEnvelop>.broadcast();
   final _serviceEvents = StreamController<EventEnvelop>.broadcast();
