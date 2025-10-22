@@ -86,8 +86,6 @@ class HttpServer {
   Future<String?> processHeaders(Map<String, String> headers) async {
     final protocolsHeader = headers['Sec-WebSocket-Protocol'];
 
-    print('Header: $protocolsHeader');
-
     if (protocolsHeader == null) {
       return null;
     }
