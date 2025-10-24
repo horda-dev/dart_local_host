@@ -73,7 +73,7 @@ class HttpServer {
       )(request);
     });
 
-    final port = int.parse(Platform.environment['PORT'] ?? '8090');
+    final port = int.parse(Platform.environment['PORT'] ?? '8080');
     final ip = InternetAddress.anyIPv4;
 
     io.serve(app, ip, port).then((server) {
