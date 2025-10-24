@@ -1,3 +1,7 @@
+## 0.3.0
+
+- **FEAT**: support WebSocket connection on web platform
+
 ## 0.2.0
 
 - **FEAT**: add singleton entity support with automatic pre-initialization

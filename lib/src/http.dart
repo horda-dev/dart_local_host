@@ -53,6 +53,13 @@ class HttpServer {
 
       return webSocketHandler(
         pingInterval: Duration(seconds: 5),
+        // Here we specify a list of supported subprotocols.
+        //
+        // Client subprotocols must contain "horda", because if client sends a list of subprotocols
+        // it expects the server to respond with the negotiated subprotocol name.
+        //
+        // "horda" is an arbitrary name, can be anything as long as client and server use a common subprotocol name.
+        protocols: ['horda'],
         (WebSocketChannel channel) {
           var session = WsSession(
             sessionId: Xid().toString(),
@@ -77,13 +84,22 @@ class HttpServer {
   /// Processes request headers and returns a userId or null. <br/>
   /// Throws [FormatException] in case of header format errors. <br/>
   Future<String?> processHeaders(Map<String, String> headers) async {
-    if (headers['firebaseIdToken'] == null) {
-      // Return null for incognito connection
+    final protocolsHeader = headers['Sec-WebSocket-Protocol'];
+
+    if (protocolsHeader == null) {
       return null;
     }
 
-    final idToken = headers['firebaseIdToken']!;
-    final userId = await auth.extractUserId(idToken);
+    final values = protocolsHeader.split(',');
+
+    // Headers should be in the following order: horda, API_KEY, FIREBASE_ID_TOKEN
+    if (values.length < 3) {
+      return null;
+    }
+
+    final firebaseIdToken = values[2].trim();
+
+    final userId = await auth.extractUserId(firebaseIdToken);
 
     return userId;
   }
