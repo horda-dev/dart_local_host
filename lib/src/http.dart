@@ -97,7 +97,7 @@ class HttpServer {
       return null;
     }
 
-    final firebaseIdToken = values[2];
+    final firebaseIdToken = values[2].trim();
 
     final userId = await auth.extractUserId(firebaseIdToken);
 
