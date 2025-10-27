@@ -142,7 +142,7 @@ View changes are packaged into ChangeEnvelops with monotonically increasing chan
 Commands that fail produce `FluirErrorEvent` instead of throwing, allowing clients to handle errors gracefully. JSON parsing errors produce detailed `HordaLocalHostJsonError` with file locations.
 
 ### Authentication
-Firebase JWT tokens are extracted from the `firebaseIdToken` header. Expired tokens result in incognito connections. Incognito users can query and dispatch events but cannot send commands.
+Firebase JWT tokens are extracted from the `firebaseIdToken` header. Expired tokens result in incognito connections. Incognito users can query, dispatch events, send and call commands.
 
 ## Key Timeouts
 - **Entity command call**: 500ms
