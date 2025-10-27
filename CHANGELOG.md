@@ -1,3 +1,7 @@
+## 0.3.1
+
+- **FIX**: allow sending and calling commands when user is incognito
+
 ## 0.3.0
 
 - **FEAT**: support WebSocket connection on web platform
