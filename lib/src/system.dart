@@ -289,14 +289,14 @@ final class HordaServerSystem {
     );
   }
 
-  Future<FlowResult> dispatchEvent(
+  Future<ProcessResult> dispatchEvent(
     EntityId from,
     RemoteEvent event,
   ) async {
     return await messageStore.dispatchEvent(from, event);
   }
 
-  Future<FlowResult> dispatchEventJson(
+  Future<ProcessResult> dispatchEventJson(
     EntityId from,
     String eventType,
     Map<String, dynamic> eventJson,

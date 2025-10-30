@@ -75,7 +75,7 @@ class _ProcessHandlers implements ProcessHandlers {
     return _eventFactories.containsKey(env.type);
   }
 
-  Future<FlowResult> handle(EventEnvelop env) async {
+  Future<ProcessResult> handle(EventEnvelop env) async {
     logger.info(
       'handling event ${env.type} from ${env.actorId}',
     );
@@ -276,5 +276,5 @@ class ProcessResultEnvelop {
   const ProcessResultEnvelop(this.dispatchId, this.result);
 
   final String dispatchId;
-  final FlowResult result;
+  final ProcessResult result;
 }

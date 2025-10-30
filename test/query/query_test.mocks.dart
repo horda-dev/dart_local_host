@@ -46,8 +46,8 @@ class _FakeRemoteEvent_1 extends _i1.SmartFake implements _i3.RemoteEvent {
         );
 }
 
-class _FakeFlowResult_2 extends _i1.SmartFake implements _i3.FlowResult {
-  _FakeFlowResult_2(
+class _FakeProcessResult_2 extends _i1.SmartFake implements _i3.ProcessResult {
+  _FakeProcessResult_2(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -530,7 +530,7 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
       ) as _i2.Stream<_i3.EventEnvelop>);
 
   @override
-  _i2.Future<_i3.FlowResult> dispatchEvent(
+  _i2.Future<_i3.ProcessResult> dispatchEvent(
     String? from,
     _i3.RemoteEvent? event,
   ) =>
@@ -542,7 +542,7 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
             event,
           ],
         ),
-        returnValue: _i2.Future<_i3.FlowResult>.value(_FakeFlowResult_2(
+        returnValue: _i2.Future<_i3.ProcessResult>.value(_FakeProcessResult_2(
           this,
           Invocation.method(
             #dispatchEvent,
@@ -553,7 +553,7 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
           ),
         )),
         returnValueForMissingStub:
-            _i2.Future<_i3.FlowResult>.value(_FakeFlowResult_2(
+            _i2.Future<_i3.ProcessResult>.value(_FakeProcessResult_2(
           this,
           Invocation.method(
             #dispatchEvent,
@@ -563,10 +563,10 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
             ],
           ),
         )),
-      ) as _i2.Future<_i3.FlowResult>);
+      ) as _i2.Future<_i3.ProcessResult>);
 
   @override
-  _i2.Future<_i3.FlowResult> dispatchEventJson(
+  _i2.Future<_i3.ProcessResult> dispatchEventJson(
     String? from,
     String? eventType,
     Map<String, dynamic>? eventJson,
@@ -580,7 +580,7 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
             eventJson,
           ],
         ),
-        returnValue: _i2.Future<_i3.FlowResult>.value(_FakeFlowResult_2(
+        returnValue: _i2.Future<_i3.ProcessResult>.value(_FakeProcessResult_2(
           this,
           Invocation.method(
             #dispatchEventJson,
@@ -592,7 +592,7 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
           ),
         )),
         returnValueForMissingStub:
-            _i2.Future<_i3.FlowResult>.value(_FakeFlowResult_2(
+            _i2.Future<_i3.ProcessResult>.value(_FakeProcessResult_2(
           this,
           Invocation.method(
             #dispatchEventJson,
@@ -603,7 +603,7 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
             ],
           ),
         )),
-      ) as _i2.Future<_i3.FlowResult>);
+      ) as _i2.Future<_i3.ProcessResult>);
 
   @override
   void publishEntityEvent(_i3.EventEnvelop? event) => super.noSuchMethod(

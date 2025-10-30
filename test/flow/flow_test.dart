@@ -124,14 +124,14 @@ class TestState implements EntityState {
 // process
 
 class TestProcess1 extends Process {
-  Future<FlowResult> handle(TestEvent1 event, ProcessContext context) async {
+  Future<ProcessResult> handle(TestEvent1 event, ProcessContext context) async {
     context.callEntity(
       name: 'TestEntity',
       id: 'actor1',
       cmd: TestCommand1('ran by ${context.processId}'),
       fac: ResultEvent.fromJson,
     );
-    return FlowResult.ok('handled test event 1');
+    return ProcessResult.ok('handled test event 1');
   }
 
   @override
@@ -141,7 +141,7 @@ class TestProcess1 extends Process {
 }
 
 class TestProcess2 extends Process {
-  Future<FlowResult> handle(TestEvent1 event, ProcessContext context) async {
+  Future<ProcessResult> handle(TestEvent1 event, ProcessContext context) async {
     var res = await context.callEntity<ResultEvent>(
       name: 'TestEntity',
       id: 'actor1',
@@ -149,7 +149,7 @@ class TestProcess2 extends Process {
       fac: ResultEvent.fromJson,
     );
     expect(res, TypeMatcher<ResultEvent>());
-    return FlowResult.ok();
+    return ProcessResult.ok();
   }
 
   @override
@@ -159,14 +159,16 @@ class TestProcess2 extends Process {
 }
 
 class TestProcess3 extends Process {
-  Future<FlowResult> handle1(TestEvent1 event, ProcessContext context) async {
+  Future<ProcessResult> handle1(
+      TestEvent1 event, ProcessContext context) async {
     // Note: Process architecture doesn't have subscribe - processes handle dispatched events
-    return FlowResult.ok();
+    return ProcessResult.ok();
   }
 
-  Future<FlowResult> handle2(TestEvent2 event, ProcessContext context) async {
+  Future<ProcessResult> handle2(
+      TestEvent2 event, ProcessContext context) async {
     h = event.processId;
-    return FlowResult.ok();
+    return ProcessResult.ok();
   }
 
   String? h;
@@ -333,7 +335,7 @@ void main() {
       TestEvent1('TestProcess1.process1'),
     );
 
-    // Check that system.dispatchEvent returned a proper FlowResult
+    // Check that system.dispatchEvent returned a proper ProcessResult
     expect(result.value, 'handled test event 1');
     expect(result.isError, false);
   });

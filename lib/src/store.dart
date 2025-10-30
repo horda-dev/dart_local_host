@@ -82,12 +82,12 @@ abstract class MessageStore {
     String? commandId,
   });
 
-  Future<FlowResult> dispatchEvent(
+  Future<ProcessResult> dispatchEvent(
     EntityId from,
     RemoteEvent event,
   );
 
-  Future<FlowResult> dispatchEventJson(
+  Future<ProcessResult> dispatchEventJson(
     EntityId from,
     String eventType,
     Map<String, dynamic> eventJson,
@@ -410,7 +410,7 @@ class MemoryMessageStore implements MessageStore {
   }
 
   @override
-  Future<FlowResult> dispatchEvent(
+  Future<ProcessResult> dispatchEvent(
     EntityId from,
     RemoteEvent event,
   ) async {
@@ -422,7 +422,7 @@ class MemoryMessageStore implements MessageStore {
   }
 
   @override
-  Future<FlowResult> dispatchEventJson(
+  Future<ProcessResult> dispatchEventJson(
     EntityId from,
     String eventType,
     Map<String, dynamic> eventJson,
