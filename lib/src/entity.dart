@@ -258,7 +258,9 @@ class _EntityHandlers<S extends EntityState> implements EntityHandlers<S> {
       'Handling init command ${env.type} from ${env.from} to ${env.to}',
     );
 
-    final context = _EntityContext(env.to, env.from, host);
+    final senderId = env.from.isNotEmpty ? env.from : null;
+
+    final context = _EntityContext(env.to, senderId, host);
 
     final cmd = _commandFromJson(env.type, env.command);
     final handler = _entityInitHandler[cmd.runtimeType];
@@ -291,7 +293,9 @@ class _EntityHandlers<S extends EntityState> implements EntityHandlers<S> {
       'Handling command ${env.type} from ${env.from} to ${env.to}',
     );
 
-    final context = _EntityContext(env.to, env.from, host);
+    final senderId = env.from.isNotEmpty ? env.from : null;
+
+    final context = _EntityContext(env.to, senderId, host);
 
     final cmd = _commandFromJson(env.type, env.command);
     final handler = _entityHandlers[cmd.runtimeType];
@@ -343,7 +347,7 @@ class _EntityContext implements EntityContext {
   final EntityId entityId;
 
   @override
-  final EntityId senderId;
+  final String? senderId;
 
   @override
   DateTime get clock => DateTime.now().toUtc();

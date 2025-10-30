@@ -105,23 +105,15 @@ final class WsSession {
   }
 
   Future<WsMessage> _onSendCommand(SendCommandWsMsg msg) async {
-    if (userId == null) {
-      logger.warning(
-        'Denied incognito sending command ${msg.type} to ${msg.to}.',
-      );
-      return ErrorWsMsg(
-        'send ${msg.type} to ${msg.to}',
-        'Incognito has no permission to send Commands.',
-      );
-    }
-
-    logger.fine('sending command ${msg.type} to ${msg.to}...');
+    logger.fine(
+      'user ${userId ?? 'Incognito'} sending command ${msg.type} to ${msg.to}...',
+    );
 
     try {
       system.sendEntityJson(
         msg.actorName,
         msg.to,
-        userId!,
+        userId ?? '',
         msg.type,
         msg.cmd,
       );
@@ -138,23 +130,15 @@ final class WsSession {
   }
 
   Future<WsMessage> _onCallCommand(CallCommandWsMsg msg) async {
-    if (userId == null) {
-      logger.warning(
-        'Denied incognito calling command ${msg.type} to ${msg.to}.',
-      );
-      return ErrorWsMsg(
-        'call ${msg.type} to ${msg.to}',
-        'Incognito has no permission to call Commands.',
-      );
-    }
-
-    logger.fine('calling command ${msg.type} to ${msg.to}...');
+    logger.fine(
+      'user ${userId ?? 'Incognito'} calling command from ${msg.type} to ${msg.to}...',
+    );
 
     try {
       final commandId = system.sendEntityJson(
         msg.actorName,
         msg.to,
-        userId!,
+        userId ?? '',
         msg.type,
         msg.cmd,
       );
@@ -179,7 +163,7 @@ final class WsSession {
 
   Future<WsMessage> _onDispatchEvent(DispatchEventWsMsg msg) async {
     logger.fine(
-      'dispatching event ${msg.type} from ${userId ?? 'Incognito'}',
+      'user ${userId ?? 'Incognito'} dispatching event ${msg.type}',
     );
 
     try {

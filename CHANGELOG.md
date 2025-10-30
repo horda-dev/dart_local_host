@@ -1,3 +1,9 @@
+## 0.4.0
+
+- **FIX**: allow sending and calling commands when user is incognito
+- **FEAT**: use nullable EntityContext.senderId
+- **FEAT**: use horda_server 0.17.0
+
 ## 0.3.0
 
 - **FEAT**: support WebSocket connection on web platform
