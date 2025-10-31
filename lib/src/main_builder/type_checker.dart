@@ -28,8 +28,8 @@ class FluirTypeChecker {
     return _serviceChecker.isSuperOf(element);
   }
 
-  bool isProcess(ClassElement element) {
-    return _processChecker.isSuperOf(element);
+  bool isProcessGroup(ClassElement element) {
+    return _processGroupChecker.isSuperOf(element);
   }
 
   bool isCommand(ClassElement element) {
@@ -56,8 +56,8 @@ class FluirTypeChecker {
     Service,
     inPackage: 'horda_server',
   );
-  final _processChecker = TypeChecker.typeNamed(
-    Process,
+  final _processGroupChecker = TypeChecker.typeNamed(
+    ProcessGroup,
     inPackage: 'horda_server',
   );
   final _commandChecker = TypeChecker.typeNamed(

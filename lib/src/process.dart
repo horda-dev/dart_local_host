@@ -6,26 +6,26 @@ import 'package:logging/logging.dart';
 import 'cron.dart';
 import 'system.dart';
 
-class ProcessHost {
-  ProcessHost(
-    this.process,
+class ProcessGroupHost {
+  ProcessGroupHost(
+    this.processGroup,
     this._system,
-  ) : logger = Logger('Horda.Process.${process.runtimeType}') {
+  ) : logger = Logger('Horda.ProcessGroup.${processGroup.runtimeType}') {
     logger.fine('$name host starting...');
 
-    _handlers = _ProcessHandlers(this, logger);
-    process.initHandlers(_handlers);
+    _funcs = _ProcessFuncs(this, logger);
+    processGroup.registerFuncs(_funcs);
 
     _sub = _system.dispatchedEvents().listen(_handleEvent);
 
     logger.info('$name host started');
   }
 
-  final Process process;
+  final ProcessGroup processGroup;
   final HordaServerSystem _system;
   final Logger logger;
 
-  String get name => process.runtimeType.toString();
+  String get name => processGroup.runtimeType.toString();
 
   void stop() {
     logger.fine('$name host stopping...');
@@ -36,12 +36,12 @@ class ProcessHost {
   }
 
   Future<void> _handleEvent(EventEnvelop env) async {
-    if (!_handlers.canHandle(env)) {
+    if (!_funcs.canHandle(env)) {
       logger.fine('skipped unsupported event: ${env.type}');
       return;
     }
 
-    final result = await _handlers.handle(env);
+    final result = await _funcs.handle(env);
 
     _system.publishProcessResult(
       // When dispatching, dispatchId is set as eventId in the EventEnvelope, so dispatchId == eventId.
@@ -50,24 +50,24 @@ class ProcessHost {
     );
   }
 
-  late final _ProcessHandlers _handlers;
+  late final _ProcessFuncs _funcs;
   late final StreamSubscription<EventEnvelop> _sub;
 }
 
-class _ProcessHandlers implements ProcessHandlers {
-  _ProcessHandlers(this.host, this.logger);
+class _ProcessFuncs implements ProcessFuncs {
+  _ProcessFuncs(this.host, this.logger);
 
-  final ProcessHost host;
+  final ProcessGroupHost host;
   final Logger logger;
 
   @override
   void add<E extends RemoteEvent>(
-    ProcessHandler<E> handler,
+    ProcessFunc<E> func,
     FromJsonFun<E> fromJson,
   ) {
     logger.fine('Adding handler for $E');
 
-    _processHandlers[E] = handler;
+    _processFuncs[E] = func;
     _eventFactories[E.toString()] = fromJson;
   }
 
@@ -82,7 +82,7 @@ class _ProcessHandlers implements ProcessHandlers {
 
     final event = _eventFromJson(env.type, env.event);
 
-    final handler = _processHandlers[event.runtimeType];
+    final handler = _processFuncs[event.runtimeType];
     if (handler == null) {
       throw HordaLocalHostError(
         '${host.name} host has no handler registered for event type: ${env.type}',
@@ -121,7 +121,7 @@ class _ProcessHandlers implements ProcessHandlers {
     }
   }
 
-  final _processHandlers = <Type, dynamic>{};
+  final _processFuncs = <Type, dynamic>{};
   final _eventFactories = <String, dynamic>{};
 }
 
@@ -138,7 +138,7 @@ class _ProcessContext implements ProcessContext {
 
   Logger get logger => host.logger;
 
-  final ProcessHost host;
+  final ProcessGroupHost host;
 
   // Entity methods
   @override

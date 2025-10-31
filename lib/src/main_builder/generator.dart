@@ -37,7 +37,8 @@ String generateMainFile(
 
   var processRegistrations = '';
   for (final process in processes) {
-    processRegistrations += '  system.registerProcess(${process.name}());\n';
+    processRegistrations +=
+        '  system.registerProcessGroup(${process.name}());\n';
   }
 
   return '''

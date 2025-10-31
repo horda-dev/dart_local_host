@@ -3,8 +3,8 @@
 import 'package:horda_local_host/horda_local_host.dart';
 import 'package:horda_server/horda_server.dart';
 import 'package:test/test.dart';
-// commands
 
+// commands
 class TestCreateCommand extends RemoteCommand {
   TestCreateCommand();
   factory TestCreateCommand.fromJson(Map<String, dynamic> json) =>
@@ -123,7 +123,7 @@ class TestState implements EntityState {
 
 // process
 
-class TestProcess1 extends Process {
+class TestProcess1 extends ProcessGroup {
   Future<ProcessResult> handle(TestEvent1 event, ProcessContext context) async {
     context.callEntity(
       name: 'TestEntity',
@@ -135,12 +135,12 @@ class TestProcess1 extends Process {
   }
 
   @override
-  void initHandlers(ProcessHandlers handlers) {
-    handlers.add<TestEvent1>(handle, TestEvent1.fromJson);
+  void registerFuncs(ProcessFuncs funcs) {
+    funcs.add<TestEvent1>(handle, TestEvent1.fromJson);
   }
 }
 
-class TestProcess2 extends Process {
+class TestProcess2 extends ProcessGroup {
   Future<ProcessResult> handle(TestEvent1 event, ProcessContext context) async {
     var res = await context.callEntity<ResultEvent>(
       name: 'TestEntity',
@@ -153,20 +153,24 @@ class TestProcess2 extends Process {
   }
 
   @override
-  void initHandlers(ProcessHandlers handlers) {
-    handlers.add<TestEvent1>(handle, TestEvent1.fromJson);
+  void registerFuncs(ProcessFuncs funcs) {
+    funcs.add<TestEvent1>(handle, TestEvent1.fromJson);
   }
 }
 
-class TestProcess3 extends Process {
+class TestProcess3 extends ProcessGroup {
   Future<ProcessResult> handle1(
-      TestEvent1 event, ProcessContext context) async {
+    TestEvent1 event,
+    ProcessContext context,
+  ) async {
     // Note: Process architecture doesn't have subscribe - processes handle dispatched events
     return ProcessResult.ok();
   }
 
   Future<ProcessResult> handle2(
-      TestEvent2 event, ProcessContext context) async {
+    TestEvent2 event,
+    ProcessContext context,
+  ) async {
     h = event.processId;
     return ProcessResult.ok();
   }
@@ -174,8 +178,8 @@ class TestProcess3 extends Process {
   String? h;
 
   @override
-  void initHandlers(ProcessHandlers handlers) {
-    handlers
+  void registerFuncs(ProcessFuncs funcs) {
+    funcs
       ..add<TestEvent1>(handle1, TestEvent1.fromJson)
       ..add<TestEvent2>(handle2, TestEvent2.fromJson);
   }
@@ -206,7 +210,7 @@ void main() {
       TestViewGroup(),
     );
 
-    system.registerProcess(TestProcess1());
+    system.registerProcessGroup(TestProcess1());
 
     system.start();
 
@@ -239,7 +243,7 @@ void main() {
       TestViewGroup(),
     );
 
-    system.registerProcess(TestProcess2());
+    system.registerProcessGroup(TestProcess2());
 
     system.start();
 
@@ -263,7 +267,7 @@ void main() {
     var process = TestProcess3();
     var system = HordaServerTestSystem();
 
-    system.registerProcess(process);
+    system.registerProcessGroup(process);
     system.start();
 
     system.dispatchEvent('actor1', TestEvent1('actor2'));
@@ -276,7 +280,7 @@ void main() {
     var process = TestProcess3();
     var system = HordaServerTestSystem();
 
-    system.registerProcess(process);
+    system.registerProcessGroup(process);
     system.start();
 
     system.dispatchEvent('actor1', TestEvent2('handled'));
@@ -293,7 +297,7 @@ void main() {
       TestViewGroup(),
     );
 
-    system.registerProcess(TestProcess1());
+    system.registerProcessGroup(TestProcess1());
 
     system.start();
 
@@ -323,7 +327,7 @@ void main() {
       TestViewGroup(),
     );
 
-    system.registerProcess(TestProcess1());
+    system.registerProcessGroup(TestProcess1());
 
     system.start();
 
