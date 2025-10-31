@@ -127,7 +127,7 @@ void main() {
       emits(
         <String, dynamic>{
           'msg':
-              'service TestService has no json factory registered for command type: WrongCommand'
+              'service TestService has no json factory registered for command type: WrongCommand',
         },
       ),
     );

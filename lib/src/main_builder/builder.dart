@@ -56,8 +56,8 @@ class MainBuilder implements Builder {
 
   @override
   Map<String, List<String>> get buildExtensions => {
-        r'$package$': ['bin/main.dart'],
-      };
+    r'$package$': ['bin/main.dart'],
+  };
 
   Future<AnalyzedPackage> _run(
     Resolver resolver,

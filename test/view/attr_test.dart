@@ -95,43 +95,48 @@ void main() {
       expect(initData.type, 'String?');
     });
 
-    test('changing both ref value and attributes produces correct changes',
-        () async {
-      var ref = RefView<TestEntity>(name: 'test-ref', value: 'r2');
-      ref.entityId = 'r1';
+    test(
+      'changing both ref value and attributes produces correct changes',
+      () async {
+        var ref = RefView<TestEntity>(name: 'test-ref', value: 'r2');
+        ref.entityId = 'r1';
 
-      // Change the ref value AND set attributes
-      ref.value = 'r3';
-      ref.valueAttr<String>('r3', 'attr1').value = 'a11';
-      ref.valueAttr<String>('r3', 'attr2').value = 'a21';
+        // Change the ref value AND set attributes
+        ref.value = 'r3';
+        ref.valueAttr<String>('r3', 'attr1').value = 'a11';
+        ref.valueAttr<String>('r3', 'attr2').value = 'a21';
 
-      var changes = ref.changes();
+        var changes = ref.changes();
 
-      // Should return RefViewChanged + 2 RefValueAttributeChanged
-      expect(changes.length, 3);
+        // Should return RefViewChanged + 2 RefValueAttributeChanged
+        expect(changes.length, 3);
 
-      var changeList = changes.toList();
+        var changeList = changes.toList();
 
-      // First change should be RefViewChanged
-      expect(
-        changeList[0],
-        TypeMatcher<RefViewChanged>()
-            .having((e) => e.newValue, 'newValue', 'r3'),
-      );
+        // First change should be RefViewChanged
+        expect(
+          changeList[0],
+          TypeMatcher<RefViewChanged>().having(
+            (e) => e.newValue,
+            'newValue',
+            'r3',
+          ),
+        );
 
-      // Next two should be attribute changes
-      expect(
-        changeList[1],
-        TypeMatcher<RefValueAttributeChanged>()
-            .having((e) => e.attrName, 'attrName', 'attr1')
-            .having((e) => e.newValue, 'newValue', 'a11'),
-      );
-      expect(
-        changeList[2],
-        TypeMatcher<RefValueAttributeChanged>()
-            .having((e) => e.attrName, 'attrName', 'attr2')
-            .having((e) => e.newValue, 'newValue', 'a21'),
-      );
-    });
+        // Next two should be attribute changes
+        expect(
+          changeList[1],
+          TypeMatcher<RefValueAttributeChanged>()
+              .having((e) => e.attrName, 'attrName', 'attr1')
+              .having((e) => e.newValue, 'newValue', 'a11'),
+        );
+        expect(
+          changeList[2],
+          TypeMatcher<RefValueAttributeChanged>()
+              .having((e) => e.attrName, 'attrName', 'attr2')
+              .having((e) => e.newValue, 'newValue', 'a21'),
+        );
+      },
+    );
   });
 }

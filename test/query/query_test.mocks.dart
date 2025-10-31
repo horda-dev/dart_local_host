@@ -27,49 +27,38 @@ import 'package:mockito/src/dummies.dart' as _i5;
 // ignore_for_file: invalid_use_of_internal_member
 
 class _FakeFuture_0<T> extends _i1.SmartFake implements _i2.Future<T> {
-  _FakeFuture_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeFuture_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeRemoteEvent_1 extends _i1.SmartFake implements _i3.RemoteEvent {
-  _FakeRemoteEvent_1(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeRemoteEvent_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeProcessResult_2 extends _i1.SmartFake implements _i3.ProcessResult {
-  _FakeProcessResult_2(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeProcessResult_2(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeViewSnapshot_3 extends _i1.SmartFake implements _i3.ViewSnapshot {
-  _FakeViewSnapshot_3(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeViewSnapshot_3(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [MessageStore].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
+  @override
+  _i2.Stream<_i3.ChangeEnvelop> get allChanges =>
+      (super.noSuchMethod(
+            Invocation.getter(#allChanges),
+            returnValue: _i2.Stream<_i3.ChangeEnvelop>.empty(),
+            returnValueForMissingStub: _i2.Stream<_i3.ChangeEnvelop>.empty(),
+          )
+          as _i2.Stream<_i3.ChangeEnvelop>);
+
   @override
   String sendEntity(
     String? entityName,
@@ -78,40 +67,17 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     _i3.RemoteCommand? cmd,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #sendEntity,
-          [
-            entityName,
-            entityId,
-            from,
-            cmd,
-          ],
-        ),
-        returnValue: _i5.dummyValue<String>(
-          this,
-          Invocation.method(
-            #sendEntity,
-            [
-              entityName,
-              entityId,
-              from,
-              cmd,
-            ],
-          ),
-        ),
-        returnValueForMissingStub: _i5.dummyValue<String>(
-          this,
-          Invocation.method(
-            #sendEntity,
-            [
-              entityName,
-              entityId,
-              from,
-              cmd,
-            ],
-          ),
-        ),
-      ) as String);
+            Invocation.method(#sendEntity, [entityName, entityId, from, cmd]),
+            returnValue: _i5.dummyValue<String>(
+              this,
+              Invocation.method(#sendEntity, [entityName, entityId, from, cmd]),
+            ),
+            returnValueForMissingStub: _i5.dummyValue<String>(
+              this,
+              Invocation.method(#sendEntity, [entityName, entityId, from, cmd]),
+            ),
+          )
+          as String);
 
   @override
   String sendEntityJson(
@@ -122,43 +88,35 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     Map<String, dynamic>? cmdJson,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #sendEntityJson,
-          [
-            entityName,
-            entityId,
-            from,
-            cmdType,
-            cmdJson,
-          ],
-        ),
-        returnValue: _i5.dummyValue<String>(
-          this,
-          Invocation.method(
-            #sendEntityJson,
-            [
+            Invocation.method(#sendEntityJson, [
               entityName,
               entityId,
               from,
               cmdType,
               cmdJson,
-            ],
-          ),
-        ),
-        returnValueForMissingStub: _i5.dummyValue<String>(
-          this,
-          Invocation.method(
-            #sendEntityJson,
-            [
-              entityName,
-              entityId,
-              from,
-              cmdType,
-              cmdJson,
-            ],
-          ),
-        ),
-      ) as String);
+            ]),
+            returnValue: _i5.dummyValue<String>(
+              this,
+              Invocation.method(#sendEntityJson, [
+                entityName,
+                entityId,
+                from,
+                cmdType,
+                cmdJson,
+              ]),
+            ),
+            returnValueForMissingStub: _i5.dummyValue<String>(
+              this,
+              Invocation.method(#sendEntityJson, [
+                entityName,
+                entityId,
+                from,
+                cmdType,
+                cmdJson,
+              ]),
+            ),
+          )
+          as String);
 
   @override
   _i2.Future<E> callEntity<E extends _i3.RemoteEvent>({
@@ -169,80 +127,63 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     required _i3.FromJsonFun<E>? fac,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #callEntity,
-          [],
-          {
-            #entityName: entityName,
-            #entityId: entityId,
-            #from: from,
-            #cmd: cmd,
-            #fac: fac,
-          },
-        ),
-        returnValue: _i5.ifNotNull(
-              _i5.dummyValueOrNull<E>(
-                this,
-                Invocation.method(
-                  #callEntity,
-                  [],
-                  {
+            Invocation.method(#callEntity, [], {
+              #entityName: entityName,
+              #entityId: entityId,
+              #from: from,
+              #cmd: cmd,
+              #fac: fac,
+            }),
+            returnValue:
+                _i5.ifNotNull(
+                  _i5.dummyValueOrNull<E>(
+                    this,
+                    Invocation.method(#callEntity, [], {
+                      #entityName: entityName,
+                      #entityId: entityId,
+                      #from: from,
+                      #cmd: cmd,
+                      #fac: fac,
+                    }),
+                  ),
+                  (E v) => _i2.Future<E>.value(v),
+                ) ??
+                _FakeFuture_0<E>(
+                  this,
+                  Invocation.method(#callEntity, [], {
                     #entityName: entityName,
                     #entityId: entityId,
                     #from: from,
                     #cmd: cmd,
                     #fac: fac,
-                  },
+                  }),
                 ),
-              ),
-              (E v) => _i2.Future<E>.value(v),
-            ) ??
-            _FakeFuture_0<E>(
-              this,
-              Invocation.method(
-                #callEntity,
-                [],
-                {
-                  #entityName: entityName,
-                  #entityId: entityId,
-                  #from: from,
-                  #cmd: cmd,
-                  #fac: fac,
-                },
-              ),
-            ),
-        returnValueForMissingStub: _i5.ifNotNull(
-              _i5.dummyValueOrNull<E>(
-                this,
-                Invocation.method(
-                  #callEntity,
-                  [],
-                  {
+            returnValueForMissingStub:
+                _i5.ifNotNull(
+                  _i5.dummyValueOrNull<E>(
+                    this,
+                    Invocation.method(#callEntity, [], {
+                      #entityName: entityName,
+                      #entityId: entityId,
+                      #from: from,
+                      #cmd: cmd,
+                      #fac: fac,
+                    }),
+                  ),
+                  (E v) => _i2.Future<E>.value(v),
+                ) ??
+                _FakeFuture_0<E>(
+                  this,
+                  Invocation.method(#callEntity, [], {
                     #entityName: entityName,
                     #entityId: entityId,
                     #from: from,
                     #cmd: cmd,
                     #fac: fac,
-                  },
+                  }),
                 ),
-              ),
-              (E v) => _i2.Future<E>.value(v),
-            ) ??
-            _FakeFuture_0<E>(
-              this,
-              Invocation.method(
-                #callEntity,
-                [],
-                {
-                  #entityName: entityName,
-                  #entityId: entityId,
-                  #from: from,
-                  #cmd: cmd,
-                  #fac: fac,
-                },
-              ),
-            ),
-      ) as _i2.Future<E>);
+          )
+          as _i2.Future<E>);
 
   @override
   _i2.Future<_i3.RemoteEvent> callEntityDynamic({
@@ -253,47 +194,39 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     required List<_i3.FromJsonFun<_i3.RemoteEvent>>? fac,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #callEntityDynamic,
-          [],
-          {
-            #entityName: entityName,
-            #entityId: entityId,
-            #from: from,
-            #cmd: cmd,
-            #fac: fac,
-          },
-        ),
-        returnValue: _i2.Future<_i3.RemoteEvent>.value(_FakeRemoteEvent_1(
-          this,
-          Invocation.method(
-            #callEntityDynamic,
-            [],
-            {
+            Invocation.method(#callEntityDynamic, [], {
               #entityName: entityName,
               #entityId: entityId,
               #from: from,
               #cmd: cmd,
               #fac: fac,
-            },
-          ),
-        )),
-        returnValueForMissingStub:
-            _i2.Future<_i3.RemoteEvent>.value(_FakeRemoteEvent_1(
-          this,
-          Invocation.method(
-            #callEntityDynamic,
-            [],
-            {
-              #entityName: entityName,
-              #entityId: entityId,
-              #from: from,
-              #cmd: cmd,
-              #fac: fac,
-            },
-          ),
-        )),
-      ) as _i2.Future<_i3.RemoteEvent>);
+            }),
+            returnValue: _i2.Future<_i3.RemoteEvent>.value(
+              _FakeRemoteEvent_1(
+                this,
+                Invocation.method(#callEntityDynamic, [], {
+                  #entityName: entityName,
+                  #entityId: entityId,
+                  #from: from,
+                  #cmd: cmd,
+                  #fac: fac,
+                }),
+              ),
+            ),
+            returnValueForMissingStub: _i2.Future<_i3.RemoteEvent>.value(
+              _FakeRemoteEvent_1(
+                this,
+                Invocation.method(#callEntityDynamic, [], {
+                  #entityName: entityName,
+                  #entityId: entityId,
+                  #from: from,
+                  #cmd: cmd,
+                  #fac: fac,
+                }),
+              ),
+            ),
+          )
+          as _i2.Future<_i3.RemoteEvent>);
 
   @override
   _i2.Stream<_i3.CommandEnvelop> entityCommands(
@@ -301,16 +234,11 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     String? entityId,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #entityCommands,
-          [
-            entityName,
-            entityId,
-          ],
-        ),
-        returnValue: _i2.Stream<_i3.CommandEnvelop>.empty(),
-        returnValueForMissingStub: _i2.Stream<_i3.CommandEnvelop>.empty(),
-      ) as _i2.Stream<_i3.CommandEnvelop>);
+            Invocation.method(#entityCommands, [entityName, entityId]),
+            returnValue: _i2.Stream<_i3.CommandEnvelop>.empty(),
+            returnValueForMissingStub: _i2.Stream<_i3.CommandEnvelop>.empty(),
+          )
+          as _i2.Stream<_i3.CommandEnvelop>);
 
   @override
   _i2.Stream<_i3.EventEnvelop> entityEvents({
@@ -320,19 +248,16 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     String? commandId,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #entityEvents,
-          [],
-          {
-            #entityName: entityName,
-            #entityId: entityId,
-            #type: type,
-            #commandId: commandId,
-          },
-        ),
-        returnValue: _i2.Stream<_i3.EventEnvelop>.empty(),
-        returnValueForMissingStub: _i2.Stream<_i3.EventEnvelop>.empty(),
-      ) as _i2.Stream<_i3.EventEnvelop>);
+            Invocation.method(#entityEvents, [], {
+              #entityName: entityName,
+              #entityId: entityId,
+              #type: type,
+              #commandId: commandId,
+            }),
+            returnValue: _i2.Stream<_i3.EventEnvelop>.empty(),
+            returnValueForMissingStub: _i2.Stream<_i3.EventEnvelop>.empty(),
+          )
+          as _i2.Stream<_i3.EventEnvelop>);
 
   @override
   String sendService(
@@ -341,37 +266,17 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     _i3.RemoteCommand? cmd,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #sendService,
-          [
-            serviceName,
-            from,
-            cmd,
-          ],
-        ),
-        returnValue: _i5.dummyValue<String>(
-          this,
-          Invocation.method(
-            #sendService,
-            [
-              serviceName,
-              from,
-              cmd,
-            ],
-          ),
-        ),
-        returnValueForMissingStub: _i5.dummyValue<String>(
-          this,
-          Invocation.method(
-            #sendService,
-            [
-              serviceName,
-              from,
-              cmd,
-            ],
-          ),
-        ),
-      ) as String);
+            Invocation.method(#sendService, [serviceName, from, cmd]),
+            returnValue: _i5.dummyValue<String>(
+              this,
+              Invocation.method(#sendService, [serviceName, from, cmd]),
+            ),
+            returnValueForMissingStub: _i5.dummyValue<String>(
+              this,
+              Invocation.method(#sendService, [serviceName, from, cmd]),
+            ),
+          )
+          as String);
 
   @override
   _i2.Future<E> callService<E extends _i3.RemoteEvent>({
@@ -381,75 +286,58 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     required _i3.FromJsonFun<E>? fac,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #callService,
-          [],
-          {
-            #serviceName: serviceName,
-            #from: from,
-            #cmd: cmd,
-            #fac: fac,
-          },
-        ),
-        returnValue: _i5.ifNotNull(
-              _i5.dummyValueOrNull<E>(
-                this,
-                Invocation.method(
-                  #callService,
-                  [],
-                  {
+            Invocation.method(#callService, [], {
+              #serviceName: serviceName,
+              #from: from,
+              #cmd: cmd,
+              #fac: fac,
+            }),
+            returnValue:
+                _i5.ifNotNull(
+                  _i5.dummyValueOrNull<E>(
+                    this,
+                    Invocation.method(#callService, [], {
+                      #serviceName: serviceName,
+                      #from: from,
+                      #cmd: cmd,
+                      #fac: fac,
+                    }),
+                  ),
+                  (E v) => _i2.Future<E>.value(v),
+                ) ??
+                _FakeFuture_0<E>(
+                  this,
+                  Invocation.method(#callService, [], {
                     #serviceName: serviceName,
                     #from: from,
                     #cmd: cmd,
                     #fac: fac,
-                  },
+                  }),
                 ),
-              ),
-              (E v) => _i2.Future<E>.value(v),
-            ) ??
-            _FakeFuture_0<E>(
-              this,
-              Invocation.method(
-                #callService,
-                [],
-                {
-                  #serviceName: serviceName,
-                  #from: from,
-                  #cmd: cmd,
-                  #fac: fac,
-                },
-              ),
-            ),
-        returnValueForMissingStub: _i5.ifNotNull(
-              _i5.dummyValueOrNull<E>(
-                this,
-                Invocation.method(
-                  #callService,
-                  [],
-                  {
+            returnValueForMissingStub:
+                _i5.ifNotNull(
+                  _i5.dummyValueOrNull<E>(
+                    this,
+                    Invocation.method(#callService, [], {
+                      #serviceName: serviceName,
+                      #from: from,
+                      #cmd: cmd,
+                      #fac: fac,
+                    }),
+                  ),
+                  (E v) => _i2.Future<E>.value(v),
+                ) ??
+                _FakeFuture_0<E>(
+                  this,
+                  Invocation.method(#callService, [], {
                     #serviceName: serviceName,
                     #from: from,
                     #cmd: cmd,
                     #fac: fac,
-                  },
+                  }),
                 ),
-              ),
-              (E v) => _i2.Future<E>.value(v),
-            ) ??
-            _FakeFuture_0<E>(
-              this,
-              Invocation.method(
-                #callService,
-                [],
-                {
-                  #serviceName: serviceName,
-                  #from: from,
-                  #cmd: cmd,
-                  #fac: fac,
-                },
-              ),
-            ),
-      ) as _i2.Future<E>);
+          )
+          as _i2.Future<E>);
 
   @override
   _i2.Future<_i3.RemoteEvent> callServiceDynamic({
@@ -459,55 +347,45 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     required List<_i3.FromJsonFun<_i3.RemoteEvent>>? fac,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #callServiceDynamic,
-          [],
-          {
-            #serviceName: serviceName,
-            #from: from,
-            #cmd: cmd,
-            #fac: fac,
-          },
-        ),
-        returnValue: _i2.Future<_i3.RemoteEvent>.value(_FakeRemoteEvent_1(
-          this,
-          Invocation.method(
-            #callServiceDynamic,
-            [],
-            {
+            Invocation.method(#callServiceDynamic, [], {
               #serviceName: serviceName,
               #from: from,
               #cmd: cmd,
               #fac: fac,
-            },
-          ),
-        )),
-        returnValueForMissingStub:
-            _i2.Future<_i3.RemoteEvent>.value(_FakeRemoteEvent_1(
-          this,
-          Invocation.method(
-            #callServiceDynamic,
-            [],
-            {
-              #serviceName: serviceName,
-              #from: from,
-              #cmd: cmd,
-              #fac: fac,
-            },
-          ),
-        )),
-      ) as _i2.Future<_i3.RemoteEvent>);
+            }),
+            returnValue: _i2.Future<_i3.RemoteEvent>.value(
+              _FakeRemoteEvent_1(
+                this,
+                Invocation.method(#callServiceDynamic, [], {
+                  #serviceName: serviceName,
+                  #from: from,
+                  #cmd: cmd,
+                  #fac: fac,
+                }),
+              ),
+            ),
+            returnValueForMissingStub: _i2.Future<_i3.RemoteEvent>.value(
+              _FakeRemoteEvent_1(
+                this,
+                Invocation.method(#callServiceDynamic, [], {
+                  #serviceName: serviceName,
+                  #from: from,
+                  #cmd: cmd,
+                  #fac: fac,
+                }),
+              ),
+            ),
+          )
+          as _i2.Future<_i3.RemoteEvent>);
 
   @override
   _i2.Stream<_i3.CommandEnvelop> serviceCommands(String? serviceName) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #serviceCommands,
-          [serviceName],
-        ),
-        returnValue: _i2.Stream<_i3.CommandEnvelop>.empty(),
-        returnValueForMissingStub: _i2.Stream<_i3.CommandEnvelop>.empty(),
-      ) as _i2.Stream<_i3.CommandEnvelop>);
+            Invocation.method(#serviceCommands, [serviceName]),
+            returnValue: _i2.Stream<_i3.CommandEnvelop>.empty(),
+            returnValueForMissingStub: _i2.Stream<_i3.CommandEnvelop>.empty(),
+          )
+          as _i2.Stream<_i3.CommandEnvelop>);
 
   @override
   _i2.Stream<_i3.EventEnvelop> serviceEvents({
@@ -516,18 +394,15 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     String? commandId,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #serviceEvents,
-          [],
-          {
-            #serviceName: serviceName,
-            #type: type,
-            #commandId: commandId,
-          },
-        ),
-        returnValue: _i2.Stream<_i3.EventEnvelop>.empty(),
-        returnValueForMissingStub: _i2.Stream<_i3.EventEnvelop>.empty(),
-      ) as _i2.Stream<_i3.EventEnvelop>);
+            Invocation.method(#serviceEvents, [], {
+              #serviceName: serviceName,
+              #type: type,
+              #commandId: commandId,
+            }),
+            returnValue: _i2.Stream<_i3.EventEnvelop>.empty(),
+            returnValueForMissingStub: _i2.Stream<_i3.EventEnvelop>.empty(),
+          )
+          as _i2.Stream<_i3.EventEnvelop>);
 
   @override
   _i2.Future<_i3.ProcessResult> dispatchEvent(
@@ -535,35 +410,21 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     _i3.RemoteEvent? event,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #dispatchEvent,
-          [
-            from,
-            event,
-          ],
-        ),
-        returnValue: _i2.Future<_i3.ProcessResult>.value(_FakeProcessResult_2(
-          this,
-          Invocation.method(
-            #dispatchEvent,
-            [
-              from,
-              event,
-            ],
-          ),
-        )),
-        returnValueForMissingStub:
-            _i2.Future<_i3.ProcessResult>.value(_FakeProcessResult_2(
-          this,
-          Invocation.method(
-            #dispatchEvent,
-            [
-              from,
-              event,
-            ],
-          ),
-        )),
-      ) as _i2.Future<_i3.ProcessResult>);
+            Invocation.method(#dispatchEvent, [from, event]),
+            returnValue: _i2.Future<_i3.ProcessResult>.value(
+              _FakeProcessResult_2(
+                this,
+                Invocation.method(#dispatchEvent, [from, event]),
+              ),
+            ),
+            returnValueForMissingStub: _i2.Future<_i3.ProcessResult>.value(
+              _FakeProcessResult_2(
+                this,
+                Invocation.method(#dispatchEvent, [from, event]),
+              ),
+            ),
+          )
+          as _i2.Future<_i3.ProcessResult>);
 
   @override
   _i2.Future<_i3.ProcessResult> dispatchEventJson(
@@ -572,97 +433,73 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     Map<String, dynamic>? eventJson,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #dispatchEventJson,
-          [
-            from,
-            eventType,
-            eventJson,
-          ],
-        ),
-        returnValue: _i2.Future<_i3.ProcessResult>.value(_FakeProcessResult_2(
-          this,
-          Invocation.method(
-            #dispatchEventJson,
-            [
-              from,
-              eventType,
-              eventJson,
-            ],
-          ),
-        )),
-        returnValueForMissingStub:
-            _i2.Future<_i3.ProcessResult>.value(_FakeProcessResult_2(
-          this,
-          Invocation.method(
-            #dispatchEventJson,
-            [
-              from,
-              eventType,
-              eventJson,
-            ],
-          ),
-        )),
-      ) as _i2.Future<_i3.ProcessResult>);
+            Invocation.method(#dispatchEventJson, [from, eventType, eventJson]),
+            returnValue: _i2.Future<_i3.ProcessResult>.value(
+              _FakeProcessResult_2(
+                this,
+                Invocation.method(#dispatchEventJson, [
+                  from,
+                  eventType,
+                  eventJson,
+                ]),
+              ),
+            ),
+            returnValueForMissingStub: _i2.Future<_i3.ProcessResult>.value(
+              _FakeProcessResult_2(
+                this,
+                Invocation.method(#dispatchEventJson, [
+                  from,
+                  eventType,
+                  eventJson,
+                ]),
+              ),
+            ),
+          )
+          as _i2.Future<_i3.ProcessResult>);
 
   @override
   void publishEntityEvent(_i3.EventEnvelop? event) => super.noSuchMethod(
-        Invocation.method(
-          #publishEntityEvent,
-          [event],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#publishEntityEvent, [event]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void publishServiceEvent(_i3.EventEnvelop? event) => super.noSuchMethod(
-        Invocation.method(
-          #publishServiceEvent,
-          [event],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#publishServiceEvent, [event]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void publishProcessResult(_i6.ProcessResultEnvelop? result) =>
       super.noSuchMethod(
-        Invocation.method(
-          #publishProcessResult,
-          [result],
-        ),
+        Invocation.method(#publishProcessResult, [result]),
         returnValueForMissingStub: null,
       );
 
   @override
   void publishChange(_i3.ChangeEnvelop? change) => super.noSuchMethod(
-        Invocation.method(
-          #publishChange,
-          [change],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#publishChange, [change]),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i2.Stream<_i3.EventEnvelop> dispatchedEvents() => (super.noSuchMethod(
-        Invocation.method(
-          #dispatchedEvents,
-          [],
-        ),
-        returnValue: _i2.Stream<_i3.EventEnvelop>.empty(),
-        returnValueForMissingStub: _i2.Stream<_i3.EventEnvelop>.empty(),
-      ) as _i2.Stream<_i3.EventEnvelop>);
+  _i2.Stream<_i3.EventEnvelop> dispatchedEvents() =>
+      (super.noSuchMethod(
+            Invocation.method(#dispatchedEvents, []),
+            returnValue: _i2.Stream<_i3.EventEnvelop>.empty(),
+            returnValueForMissingStub: _i2.Stream<_i3.EventEnvelop>.empty(),
+          )
+          as _i2.Stream<_i3.EventEnvelop>);
 
   @override
   _i2.Stream<_i6.ProcessResultEnvelop> processResults({String? dispatchId}) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #processResults,
-          [],
-          {#dispatchId: dispatchId},
-        ),
-        returnValue: _i2.Stream<_i6.ProcessResultEnvelop>.empty(),
-        returnValueForMissingStub: _i2.Stream<_i6.ProcessResultEnvelop>.empty(),
-      ) as _i2.Stream<_i6.ProcessResultEnvelop>);
+            Invocation.method(#processResults, [], {#dispatchId: dispatchId}),
+            returnValue: _i2.Stream<_i6.ProcessResultEnvelop>.empty(),
+            returnValueForMissingStub:
+                _i2.Stream<_i6.ProcessResultEnvelop>.empty(),
+          )
+          as _i2.Stream<_i6.ProcessResultEnvelop>);
 
   @override
   Iterable<_i3.ChangeEnvelop> changeHistory({
@@ -672,19 +509,16 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     required String? startAt,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #changeHistory,
-          [],
-          {
-            #entityName: entityName,
-            #id: id,
-            #name: name,
-            #startAt: startAt,
-          },
-        ),
-        returnValue: <_i3.ChangeEnvelop>[],
-        returnValueForMissingStub: <_i3.ChangeEnvelop>[],
-      ) as Iterable<_i3.ChangeEnvelop>);
+            Invocation.method(#changeHistory, [], {
+              #entityName: entityName,
+              #id: id,
+              #name: name,
+              #startAt: startAt,
+            }),
+            returnValue: <_i3.ChangeEnvelop>[],
+            returnValueForMissingStub: <_i3.ChangeEnvelop>[],
+          )
+          as Iterable<_i3.ChangeEnvelop>);
 
   @override
   _i2.Stream<_i3.ChangeEnvelop> changes({
@@ -694,19 +528,16 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
     String? startAt,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #changes,
-          [],
-          {
-            #entityName: entityName,
-            #id: id,
-            #name: name,
-            #startAt: startAt,
-          },
-        ),
-        returnValue: _i2.Stream<_i3.ChangeEnvelop>.empty(),
-        returnValueForMissingStub: _i2.Stream<_i3.ChangeEnvelop>.empty(),
-      ) as _i2.Stream<_i3.ChangeEnvelop>);
+            Invocation.method(#changes, [], {
+              #entityName: entityName,
+              #id: id,
+              #name: name,
+              #startAt: startAt,
+            }),
+            returnValue: _i2.Stream<_i3.ChangeEnvelop>.empty(),
+            returnValueForMissingStub: _i2.Stream<_i3.ChangeEnvelop>.empty(),
+          )
+          as _i2.Stream<_i3.ChangeEnvelop>);
 }
 
 /// A class which mocks [KeyValueStore].
@@ -714,83 +545,60 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
 /// See the documentation for Mockito's code generation for more information.
 class MockKeyValueStore extends _i1.Mock implements _i4.KeyValueStore {
   @override
-  _i2.Future<void> start() => (super.noSuchMethod(
-        Invocation.method(
-          #start,
-          [],
-        ),
-        returnValue: _i2.Future<void>.value(),
-        returnValueForMissingStub: _i2.Future<void>.value(),
-      ) as _i2.Future<void>);
-
-  @override
-  _i2.Future<void> stop() => (super.noSuchMethod(
-        Invocation.method(
-          #stop,
-          [],
-        ),
-        returnValue: _i2.Future<void>.value(),
-        returnValueForMissingStub: _i2.Future<void>.value(),
-      ) as _i2.Future<void>);
-
-  @override
-  _i2.Future<bool> containsKey(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #containsKey,
-          [key],
-        ),
-        returnValue: _i2.Future<bool>.value(false),
-        returnValueForMissingStub: _i2.Future<bool>.value(false),
-      ) as _i2.Future<bool>);
-
-  @override
-  _i2.Future<_i3.ViewSnapshot> get(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #get,
-          [key],
-        ),
-        returnValue: _i2.Future<_i3.ViewSnapshot>.value(_FakeViewSnapshot_3(
-          this,
-          Invocation.method(
-            #get,
-            [key],
-          ),
-        )),
-        returnValueForMissingStub:
-            _i2.Future<_i3.ViewSnapshot>.value(_FakeViewSnapshot_3(
-          this,
-          Invocation.method(
-            #get,
-            [key],
-          ),
-        )),
-      ) as _i2.Future<_i3.ViewSnapshot>);
-
-  @override
-  _i2.Future<void> set(
-    String? key,
-    _i3.ViewSnapshot? snap,
-  ) =>
+  _i2.Future<void> start() =>
       (super.noSuchMethod(
-        Invocation.method(
-          #set,
-          [
-            key,
-            snap,
-          ],
-        ),
-        returnValue: _i2.Future<void>.value(),
-        returnValueForMissingStub: _i2.Future<void>.value(),
-      ) as _i2.Future<void>);
+            Invocation.method(#start, []),
+            returnValue: _i2.Future<void>.value(),
+            returnValueForMissingStub: _i2.Future<void>.value(),
+          )
+          as _i2.Future<void>);
+
+  @override
+  _i2.Future<void> stop() =>
+      (super.noSuchMethod(
+            Invocation.method(#stop, []),
+            returnValue: _i2.Future<void>.value(),
+            returnValueForMissingStub: _i2.Future<void>.value(),
+          )
+          as _i2.Future<void>);
+
+  @override
+  _i2.Future<bool> containsKey(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#containsKey, [key]),
+            returnValue: _i2.Future<bool>.value(false),
+            returnValueForMissingStub: _i2.Future<bool>.value(false),
+          )
+          as _i2.Future<bool>);
+
+  @override
+  _i2.Future<_i3.ViewSnapshot> get(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#get, [key]),
+            returnValue: _i2.Future<_i3.ViewSnapshot>.value(
+              _FakeViewSnapshot_3(this, Invocation.method(#get, [key])),
+            ),
+            returnValueForMissingStub: _i2.Future<_i3.ViewSnapshot>.value(
+              _FakeViewSnapshot_3(this, Invocation.method(#get, [key])),
+            ),
+          )
+          as _i2.Future<_i3.ViewSnapshot>);
+
+  @override
+  _i2.Future<void> set(String? key, _i3.ViewSnapshot? snap) =>
+      (super.noSuchMethod(
+            Invocation.method(#set, [key, snap]),
+            returnValue: _i2.Future<void>.value(),
+            returnValueForMissingStub: _i2.Future<void>.value(),
+          )
+          as _i2.Future<void>);
 
   @override
   _i2.Future<void> seed(Map<String, _i3.ViewSnapshot>? snaps) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #seed,
-          [snaps],
-        ),
-        returnValue: _i2.Future<void>.value(),
-        returnValueForMissingStub: _i2.Future<void>.value(),
-      ) as _i2.Future<void>);
+            Invocation.method(#seed, [snaps]),
+            returnValue: _i2.Future<void>.value(),
+            returnValueForMissingStub: _i2.Future<void>.value(),
+          )
+          as _i2.Future<void>);
 }

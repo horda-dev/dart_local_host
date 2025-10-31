@@ -260,8 +260,11 @@ void main() {
           (e) => e.changes,
           'changes',
           contains(
-            isA<ValueViewChanged<String>>()
-                .having((c) => c.newValue, 'newValue', 'a1'),
+            isA<ValueViewChanged<String>>().having(
+              (c) => c.newValue,
+              'newValue',
+              'a1',
+            ),
           ),
         ),
       ),
@@ -275,8 +278,11 @@ void main() {
           (e) => e.changes,
           'changes',
           contains(
-            isA<ValueViewChanged<int>>()
-                .having((c) => c.newValue, 'newValue', 10),
+            isA<ValueViewChanged<int>>().having(
+              (c) => c.newValue,
+              'newValue',
+              10,
+            ),
           ),
         ),
       ),
@@ -290,8 +296,11 @@ void main() {
           (e) => e.changes,
           'changes',
           contains(
-            isA<ValueViewChanged<String>>()
-                .having((c) => c.newValue, 'newValue', 'a2'),
+            isA<ValueViewChanged<String>>().having(
+              (c) => c.newValue,
+              'newValue',
+              'a2',
+            ),
           ),
         ),
       ),
@@ -305,8 +314,11 @@ void main() {
           (e) => e.changes,
           'changes',
           contains(
-            isA<ValueViewChanged<int>>()
-                .having((c) => c.newValue, 'newValue', 10),
+            isA<ValueViewChanged<int>>().having(
+              (c) => c.newValue,
+              'newValue',
+              10,
+            ),
           ),
         ),
       ),

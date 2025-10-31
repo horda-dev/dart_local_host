@@ -103,7 +103,8 @@ class TestEntity extends Entity<TestState> {
       )
       ..add<TestCommand1>(cmd1, TestCommand1.fromJson)
       ..addStateFromJson(
-          (json) => TestState.fromTestCreated(TestCreatedEvent()));
+        (json) => TestState.fromTestCreated(TestCreatedEvent()),
+      );
   }
 }
 
@@ -222,8 +223,11 @@ void main() {
     expect(
       system.entityCommands('TestEntity', 'actor1'),
       emitsInAnyOrder([
-        TypeMatcher<CommandEnvelop>()
-            .having((e) => e.type, 'type', 'TestCreateCommand'),
+        TypeMatcher<CommandEnvelop>().having(
+          (e) => e.type,
+          'type',
+          'TestCreateCommand',
+        ),
         TypeMatcher<CommandEnvelop>()
             .having((e) => e.type, 'type', 'TestCommand1')
             .having((e) => e.command['val'], 'command.val', 'ran by 1'),
@@ -254,8 +258,11 @@ void main() {
     expect(
       system.entityCommands('TestEntity', 'actor1'),
       emitsInAnyOrder([
-        TypeMatcher<CommandEnvelop>()
-            .having((e) => e.type, 'type', 'TestCreateCommand'),
+        TypeMatcher<CommandEnvelop>().having(
+          (e) => e.type,
+          'type',
+          'TestCreateCommand',
+        ),
         TypeMatcher<CommandEnvelop>()
             .having((e) => e.type, 'type', 'TestCommand1')
             .having((e) => e.command['val'], 'command.val', 'ran by 1'),

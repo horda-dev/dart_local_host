@@ -194,7 +194,8 @@ class MemoryMessageStore implements MessageStore {
     _nextCmdId += 1;
 
     logger.info(
-        'sent entity envelop (json) $env to $entityName/$entityId from $from');
+      'sent entity envelop (json) $env to $entityName/$entityId from $from',
+    );
 
     return env.commandId;
   }
@@ -208,9 +209,10 @@ class MemoryMessageStore implements MessageStore {
     required FromJsonFun<E> fac,
   }) async {
     final cmdId = sendEntity(entityName, entityId, from, cmd);
-    final eventEnv = await entityEvents(entityId: entityId, commandId: cmdId)
-        .timeout(const Duration(milliseconds: 500))
-        .first;
+    final eventEnv = await entityEvents(
+      entityId: entityId,
+      commandId: cmdId,
+    ).timeout(const Duration(milliseconds: 500)).first;
     return fac(eventEnv.event);
   }
 
@@ -230,9 +232,10 @@ class MemoryMessageStore implements MessageStore {
     };
 
     final cmdId = sendEntity(entityName, entityId, from, cmd);
-    final eventEnv = await entityEvents(entityId: entityId, commandId: cmdId)
-        .timeout(const Duration(milliseconds: 500))
-        .first;
+    final eventEnv = await entityEvents(
+      entityId: entityId,
+      commandId: cmdId,
+    ).timeout(const Duration(milliseconds: 500)).first;
 
     final factory = factoryMap[eventEnv.type];
     if (factory == null) {
@@ -259,7 +262,8 @@ class MemoryMessageStore implements MessageStore {
         .map((e) => e.command);
 
     logger.info(
-        'got ${log.length} past entity commands for $entityName/$entityId');
+      'got ${log.length} past entity commands for $entityName/$entityId',
+    );
 
     return Rx.concatEager([
       past,
@@ -327,10 +331,10 @@ class MemoryMessageStore implements MessageStore {
     required FromJsonFun<E> fac,
   }) async {
     final cmdId = sendService(serviceName, from, cmd);
-    final eventEnv =
-        await serviceEvents(serviceName: serviceName, commandId: cmdId)
-            .timeout(const Duration(seconds: 10))
-            .first;
+    final eventEnv = await serviceEvents(
+      serviceName: serviceName,
+      commandId: cmdId,
+    ).timeout(const Duration(seconds: 10)).first;
     return fac(eventEnv.event);
   }
 
@@ -349,10 +353,10 @@ class MemoryMessageStore implements MessageStore {
     };
 
     final cmdId = sendService(serviceName, from, cmd);
-    final eventEnv =
-        await serviceEvents(serviceName: serviceName, commandId: cmdId)
-            .timeout(const Duration(seconds: 10))
-            .first;
+    final eventEnv = await serviceEvents(
+      serviceName: serviceName,
+      commandId: cmdId,
+    ).timeout(const Duration(seconds: 10)).first;
 
     final factory = factoryMap[eventEnv.type];
     if (factory == null) {
@@ -393,7 +397,8 @@ class MemoryMessageStore implements MessageStore {
     if (serviceName != null) {
       res = res.where((e) => e.actorId == serviceName);
       logger.fine(
-          'getting service events by service name "$serviceName" started');
+        'getting service events by service name "$serviceName" started',
+      );
     }
 
     if (type != null) {
@@ -415,9 +420,9 @@ class MemoryMessageStore implements MessageStore {
     RemoteEvent event,
   ) async {
     final dispatchId = _dispatchEvent(from, event);
-    final resultEnv = await processResults(dispatchId: dispatchId)
-        .timeout(const Duration(seconds: 10))
-        .first;
+    final resultEnv = await processResults(
+      dispatchId: dispatchId,
+    ).timeout(const Duration(seconds: 10)).first;
     return resultEnv.result;
   }
 
@@ -428,9 +433,9 @@ class MemoryMessageStore implements MessageStore {
     Map<String, dynamic> eventJson,
   ) async {
     final dispatchId = _dispatchEventJson(from, eventType, eventJson);
-    final resultEnv = await processResults(dispatchId: dispatchId)
-        .timeout(const Duration(seconds: 10))
-        .first;
+    final resultEnv = await processResults(
+      dispatchId: dispatchId,
+    ).timeout(const Duration(seconds: 10)).first;
     return resultEnv.result;
   }
 
@@ -551,7 +556,7 @@ class MemoryMessageStore implements MessageStore {
             id: id,
             name: name,
             startAt: startAt,
-          )
+          ),
         ],
       );
     } else {
@@ -730,7 +735,7 @@ const kViewCacheByTimeCondition = Duration(seconds: 2);
 
 class MemoryViewStore implements ViewStore {
   MemoryViewStore(this.messageStore, this.snapStore)
-      : logger = Logger('Horda.ViewStore');
+    : logger = Logger('Horda.ViewStore');
 
   final Logger logger;
 
@@ -963,14 +968,14 @@ class MemoryViewStore implements ViewStore {
       // List
       ListViewItemAdded() => (currentValue as List<String>)..add(change.itemId),
       ListViewItemAddedIfAbsent() => () {
-          currentValue as List<String>;
-          if (currentValue.contains(change.itemId)) {
-            return currentValue;
-          }
-          return currentValue..add(change.itemId);
-        }(),
-      ListViewItemRemoved() => (currentValue as List<String>)
-        ..remove(change.itemId),
+        currentValue as List<String>;
+        if (currentValue.contains(change.itemId)) {
+          return currentValue;
+        }
+        return currentValue..add(change.itemId);
+      }(),
+      ListViewItemRemoved() =>
+        (currentValue as List<String>)..remove(change.itemId),
       ListViewCleared() => (currentValue as List<String>)..clear(),
       // Attr Value
       RefValueAttributeChanged() => change.newValue,

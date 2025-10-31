@@ -19,10 +19,10 @@ class Schedule extends CronCommand {
   Schedule(this.entityName, this.to, this.serviceName, this.at, this.cmd);
 
   Schedule.entity(this.entityName, this.to, this.at, this.cmd)
-      : serviceName = '';
+    : serviceName = '';
   Schedule.service(this.serviceName, this.at, this.cmd)
-      : entityName = '',
-        to = '';
+    : entityName = '',
+      to = '';
 
   final String entityName;
   final EntityId to;

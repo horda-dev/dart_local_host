@@ -84,8 +84,11 @@ void main() {
 
     expect(
       change2,
-      TypeMatcher<ListViewItemRemoved>()
-          .having((e) => e.itemId, 'itemId', 'a2'),
+      TypeMatcher<ListViewItemRemoved>().having(
+        (e) => e.itemId,
+        'itemId',
+        'a2',
+      ),
     );
 
     expect(list.changes(), isEmpty);
