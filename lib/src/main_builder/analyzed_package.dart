@@ -11,7 +11,7 @@ class AnalyzedPackage {
   final states = <String, AnalyzedState>{};
   final viewGroups = <String, AnalyzedViewGroup>{};
   final services = <String, AnalyzedService>{};
-  final processes = <String, AnalyzedProcess>{};
+  final processGroups = <String, AnalyzedProcessGroup>{};
   final commands = <String, AnalyzedCommand>{};
   final events = <String, AnalyzedEvent>{};
 
@@ -37,8 +37,8 @@ class AnalyzedPackage {
         continue;
       }
 
-      if (_typeChecker.isProcess(c)) {
-        _analyzeProcess(c);
+      if (_typeChecker.isProcessGroup(c)) {
+        _analyzeProcessGroup(c);
         continue;
       }
 
@@ -113,15 +113,15 @@ class AnalyzedPackage {
     services[service.name] = service;
   }
 
-  void _analyzeProcess(ClassElement element) {
-    final process = AnalyzedProcess(element);
+  void _analyzeProcessGroup(ClassElement element) {
+    final processGroup = AnalyzedProcessGroup(element);
 
-    if (processes.containsKey(process.name)) {
-      print('Skipped duplicate process: ${process.name}');
+    if (processGroups.containsKey(processGroup.name)) {
+      print('Skipped duplicate process group: ${processGroup.name}');
       return;
     }
 
-    processes[process.name] = process;
+    processGroups[processGroup.name] = processGroup;
   }
 
   void _analyzeCommand(ClassElement element) {

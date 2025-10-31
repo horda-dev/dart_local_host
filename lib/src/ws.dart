@@ -125,7 +125,9 @@ final class WsSession {
       logger.warning('send ${msg.type} to ${msg.to} failed with $e');
 
       return ErrorWsMsg(
-          '${e.runtimeType}', 'send ${msg.type} to ${msg.to}: $e');
+        '${e.runtimeType}',
+        'send ${msg.type} to ${msg.to}: $e',
+      );
     }
   }
 

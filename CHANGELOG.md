@@ -1,3 +1,9 @@
+## 0.5.0
+
+- **BREAKING**: rename FlowResult to ProcessResult
+- **FEAT**: update horda_core to 0.17.0
+- **FEAT**: update horda_server to 0.18.0
+
 ## 0.4.0
 
 - **FIX**: allow sending and calling commands when user is incognito

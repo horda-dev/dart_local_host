@@ -171,7 +171,7 @@ class TestViewGroup implements EntityViewGroup {
   TestViewGroup() : val = ValueView<int>(name: 'val', value: 0);
 
   TestViewGroup.fromTestCreated(TestCreatedEvent event)
-      : val = ValueView(name: 'val', value: event.val);
+    : val = ValueView(name: 'val', value: event.val);
 
   late final ValueView<int> val;
 

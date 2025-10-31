@@ -138,33 +138,45 @@ void main() {
     );
   });
 
-  test('singleton entity should have initial state from singleton getter',
-      () async {
-    var system = HordaServerTestSystem();
+  test(
+    'singleton entity should have initial state from singleton getter',
+    () async {
+      var system = HordaServerTestSystem();
 
-    final entity = SingletonEntity();
+      final entity = SingletonEntity();
 
-    system.registerEntity<SingletonState>(
-      entity,
-      SingletonViewGroup(),
-    );
+      system.registerEntity<SingletonState>(
+        entity,
+        SingletonViewGroup(),
+      );
 
-    await system.start();
+      await system.start();
 
-    // Send two commands to verify state persists correctly
-    // Singleton uses kSingletonId as ID
-    system.sendEntity(entity.name, kSingletonId, 'system', IncrementCommand());
-    system.sendEntity(entity.name, kSingletonId, 'system', IncrementCommand());
+      // Send two commands to verify state persists correctly
+      // Singleton uses kSingletonId as ID
+      system.sendEntity(
+        entity.name,
+        kSingletonId,
+        'system',
+        IncrementCommand(),
+      );
+      system.sendEntity(
+        entity.name,
+        kSingletonId,
+        'system',
+        IncrementCommand(),
+      );
 
-    // State starts at 42 (from singleton) and increments to 43, then 44
-    expect(
-      system.entityEvents(entityId: kSingletonId).map((e) => e.event),
-      emitsInOrder([
-        {'newCount': 43}, // First increment: 42 + 1 = 43
-        {'newCount': 44}, // Second increment: 43 + 1 = 44
-      ]),
-    );
-  });
+      // State starts at 42 (from singleton) and increments to 43, then 44
+      expect(
+        system.entityEvents(entityId: kSingletonId).map((e) => e.event),
+        emitsInOrder([
+          {'newCount': 43}, // First increment: 42 + 1 = 43
+          {'newCount': 44}, // Second increment: 43 + 1 = 44
+        ]),
+      );
+    },
+  );
 
   test('singleton entity rejects commands with wrong ID', () async {
     var system = HordaServerTestSystem();
@@ -293,7 +305,8 @@ void main() {
           (e) => e.message,
           'message',
           contains(
-              'Singleton entity view group for ${entity.name} cannot add init projectors'),
+            'Singleton entity view group for ${entity.name} cannot add init projectors',
+          ),
         ),
       ),
     );
@@ -459,7 +472,7 @@ class ConfigEntity extends Entity<ConfigState> {
 
 class ConfigViewGroup implements EntityViewGroup {
   ConfigViewGroup()
-      : value = ValueView<String>(name: 'value', value: 'default');
+    : value = ValueView<String>(name: 'value', value: 'default');
   late final ValueView<String> value;
 
   @override
@@ -535,7 +548,7 @@ class SettingsEntity extends Entity<SettingsState> {
 
 class SettingsViewGroup implements EntityViewGroup {
   SettingsViewGroup()
-      : value = ValueView<String>(name: 'value', value: 'default');
+    : value = ValueView<String>(name: 'value', value: 'default');
   late final ValueView<String> value;
 
   @override
@@ -583,7 +596,7 @@ class InvalidSingletonEntityWithInitProjector extends Entity<SingletonState> {
 // Invalid view group that attempts to add init projector
 class InvalidSingletonViewGroupWithInitProjector implements EntityViewGroup {
   InvalidSingletonViewGroupWithInitProjector()
-      : count = ValueView<int>(name: 'count', value: 10);
+    : count = ValueView<int>(name: 'count', value: 10);
 
   late final ValueView<int> count;
 

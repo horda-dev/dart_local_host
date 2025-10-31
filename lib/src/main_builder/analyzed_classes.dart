@@ -37,8 +37,8 @@ class AnalyzedService extends AnalyzedClass {
   AnalyzedService(super.element);
 }
 
-class AnalyzedProcess extends AnalyzedClass {
-  AnalyzedProcess(super.element);
+class AnalyzedProcessGroup extends AnalyzedClass {
+  AnalyzedProcessGroup(super.element);
 }
 
 class AnalyzedCommand extends AnalyzedClass {

@@ -3,8 +3,8 @@
 import 'package:horda_local_host/horda_local_host.dart';
 import 'package:horda_server/horda_server.dart';
 import 'package:test/test.dart';
-// commands
 
+// commands
 class TestCreateCommand extends RemoteCommand {
   TestCreateCommand();
   factory TestCreateCommand.fromJson(Map<String, dynamic> json) =>
@@ -103,7 +103,8 @@ class TestEntity extends Entity<TestState> {
       )
       ..add<TestCommand1>(cmd1, TestCommand1.fromJson)
       ..addStateFromJson(
-          (json) => TestState.fromTestCreated(TestCreatedEvent()));
+        (json) => TestState.fromTestCreated(TestCreatedEvent()),
+      );
   }
 }
 
@@ -123,25 +124,25 @@ class TestState implements EntityState {
 
 // process
 
-class TestProcess1 extends Process {
-  Future<FlowResult> handle(TestEvent1 event, ProcessContext context) async {
+class TestProcess1 extends ProcessGroup {
+  Future<ProcessResult> handle(TestEvent1 event, ProcessContext context) async {
     context.callEntity(
       name: 'TestEntity',
       id: 'actor1',
       cmd: TestCommand1('ran by ${context.processId}'),
       fac: ResultEvent.fromJson,
     );
-    return FlowResult.ok('handled test event 1');
+    return ProcessResult.ok('handled test event 1');
   }
 
   @override
-  void initHandlers(ProcessHandlers handlers) {
-    handlers.add<TestEvent1>(handle, TestEvent1.fromJson);
+  void registerFuncs(ProcessFuncs funcs) {
+    funcs.add<TestEvent1>(handle, TestEvent1.fromJson);
   }
 }
 
-class TestProcess2 extends Process {
-  Future<FlowResult> handle(TestEvent1 event, ProcessContext context) async {
+class TestProcess2 extends ProcessGroup {
+  Future<ProcessResult> handle(TestEvent1 event, ProcessContext context) async {
     var res = await context.callEntity<ResultEvent>(
       name: 'TestEntity',
       id: 'actor1',
@@ -149,31 +150,37 @@ class TestProcess2 extends Process {
       fac: ResultEvent.fromJson,
     );
     expect(res, TypeMatcher<ResultEvent>());
-    return FlowResult.ok();
+    return ProcessResult.ok();
   }
 
   @override
-  void initHandlers(ProcessHandlers handlers) {
-    handlers.add<TestEvent1>(handle, TestEvent1.fromJson);
+  void registerFuncs(ProcessFuncs funcs) {
+    funcs.add<TestEvent1>(handle, TestEvent1.fromJson);
   }
 }
 
-class TestProcess3 extends Process {
-  Future<FlowResult> handle1(TestEvent1 event, ProcessContext context) async {
+class TestProcess3 extends ProcessGroup {
+  Future<ProcessResult> handle1(
+    TestEvent1 event,
+    ProcessContext context,
+  ) async {
     // Note: Process architecture doesn't have subscribe - processes handle dispatched events
-    return FlowResult.ok();
+    return ProcessResult.ok();
   }
 
-  Future<FlowResult> handle2(TestEvent2 event, ProcessContext context) async {
+  Future<ProcessResult> handle2(
+    TestEvent2 event,
+    ProcessContext context,
+  ) async {
     h = event.processId;
-    return FlowResult.ok();
+    return ProcessResult.ok();
   }
 
   String? h;
 
   @override
-  void initHandlers(ProcessHandlers handlers) {
-    handlers
+  void registerFuncs(ProcessFuncs funcs) {
+    funcs
       ..add<TestEvent1>(handle1, TestEvent1.fromJson)
       ..add<TestEvent2>(handle2, TestEvent2.fromJson);
   }
@@ -204,7 +211,7 @@ void main() {
       TestViewGroup(),
     );
 
-    system.registerProcess(TestProcess1());
+    system.registerProcessGroup(TestProcess1());
 
     system.start();
 
@@ -216,8 +223,11 @@ void main() {
     expect(
       system.entityCommands('TestEntity', 'actor1'),
       emitsInAnyOrder([
-        TypeMatcher<CommandEnvelop>()
-            .having((e) => e.type, 'type', 'TestCreateCommand'),
+        TypeMatcher<CommandEnvelop>().having(
+          (e) => e.type,
+          'type',
+          'TestCreateCommand',
+        ),
         TypeMatcher<CommandEnvelop>()
             .having((e) => e.type, 'type', 'TestCommand1')
             .having((e) => e.command['val'], 'command.val', 'ran by 1'),
@@ -237,7 +247,7 @@ void main() {
       TestViewGroup(),
     );
 
-    system.registerProcess(TestProcess2());
+    system.registerProcessGroup(TestProcess2());
 
     system.start();
 
@@ -248,8 +258,11 @@ void main() {
     expect(
       system.entityCommands('TestEntity', 'actor1'),
       emitsInAnyOrder([
-        TypeMatcher<CommandEnvelop>()
-            .having((e) => e.type, 'type', 'TestCreateCommand'),
+        TypeMatcher<CommandEnvelop>().having(
+          (e) => e.type,
+          'type',
+          'TestCreateCommand',
+        ),
         TypeMatcher<CommandEnvelop>()
             .having((e) => e.type, 'type', 'TestCommand1')
             .having((e) => e.command['val'], 'command.val', 'ran by 1'),
@@ -261,7 +274,7 @@ void main() {
     var process = TestProcess3();
     var system = HordaServerTestSystem();
 
-    system.registerProcess(process);
+    system.registerProcessGroup(process);
     system.start();
 
     system.dispatchEvent('actor1', TestEvent1('actor2'));
@@ -274,7 +287,7 @@ void main() {
     var process = TestProcess3();
     var system = HordaServerTestSystem();
 
-    system.registerProcess(process);
+    system.registerProcessGroup(process);
     system.start();
 
     system.dispatchEvent('actor1', TestEvent2('handled'));
@@ -291,7 +304,7 @@ void main() {
       TestViewGroup(),
     );
 
-    system.registerProcess(TestProcess1());
+    system.registerProcessGroup(TestProcess1());
 
     system.start();
 
@@ -321,7 +334,7 @@ void main() {
       TestViewGroup(),
     );
 
-    system.registerProcess(TestProcess1());
+    system.registerProcessGroup(TestProcess1());
 
     system.start();
 
@@ -333,7 +346,7 @@ void main() {
       TestEvent1('TestProcess1.process1'),
     );
 
-    // Check that system.dispatchEvent returned a proper FlowResult
+    // Check that system.dispatchEvent returned a proper ProcessResult
     expect(result.value, 'handled test event 1');
     expect(result.isError, false);
   });

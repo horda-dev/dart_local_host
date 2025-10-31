@@ -32,7 +32,7 @@ class MainBuilder implements Builder {
     final mainFuncServices = analyzedPackage.services.values
         .map((service) => MainFuncService(service.name))
         .toList();
-    final mainFuncProcesses = analyzedPackage.processes.values
+    final mainFuncProcesses = analyzedPackage.processGroups.values
         .map((process) => MainFuncProcess(process.name))
         .toList();
 
@@ -56,8 +56,8 @@ class MainBuilder implements Builder {
 
   @override
   Map<String, List<String>> get buildExtensions => {
-        r'$package$': ['bin/main.dart'],
-      };
+    r'$package$': ['bin/main.dart'],
+  };
 
   Future<AnalyzedPackage> _run(
     Resolver resolver,

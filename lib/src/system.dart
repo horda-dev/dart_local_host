@@ -161,17 +161,17 @@ final class HordaServerSystem {
     }
   }
 
-  void registerProcess(Process process) async {
-    final name = process.runtimeType.toString();
-    if (_processHosts.containsKey(name)) {
-      throw FluirError('service $name already registered');
+  void registerProcessGroup(ProcessGroup processGroup) async {
+    final name = processGroup.runtimeType.toString();
+    if (_processGroupHosts.containsKey(name)) {
+      throw FluirError('process group $name already registered');
     }
 
-    _processHosts[name] = ProcessHost(process, this);
+    _processGroupHosts[name] = ProcessGroupHost(processGroup, this);
   }
 
   void stopProcesses() {
-    for (final process in _processHosts.values) {
+    for (final process in _processGroupHosts.values) {
       process.stop();
     }
   }
@@ -289,14 +289,14 @@ final class HordaServerSystem {
     );
   }
 
-  Future<FlowResult> dispatchEvent(
+  Future<ProcessResult> dispatchEvent(
     EntityId from,
     RemoteEvent event,
   ) async {
     return await messageStore.dispatchEvent(from, event);
   }
 
-  Future<FlowResult> dispatchEventJson(
+  Future<ProcessResult> dispatchEventJson(
     EntityId from,
     String eventType,
     Map<String, dynamic> eventJson,
@@ -375,7 +375,7 @@ final class HordaServerSystem {
   final _entityHostFactories = <String, EntityHostFactory>{};
 
   final _entityHosts = <EntityId, EntityHost>{};
-  final _processHosts = <String, ProcessHost>{};
+  final _processGroupHosts = <String, ProcessGroupHost>{};
   final _serviceHosts = <String, ServiceHost>{};
 
   final _ticker = Metronome.epoch(
