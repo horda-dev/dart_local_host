@@ -64,6 +64,7 @@ final class WsSession {
     var msg = box.msg;
     var res = switch (msg) {
       QueryWsMsg() => await _onQuery(msg),
+      QueryAndSubscribeWsMsg() => await _onQueryAndSubscribe(msg),
       SendCommandWsMsg() => await _onSendCommand(msg),
       CallCommandWsMsg() => await _onCallCommand(msg),
       DispatchEventWsMsg() => await _onDispatchEvent(msg),
@@ -101,6 +102,59 @@ final class WsSession {
       logger.warning('run query error: $e');
 
       return ErrorWsMsg('${e.runtimeType}', 'query on ${msg.actorId}: $e');
+    }
+  }
+
+  Future<WsMessage> _onQueryAndSubscribe(QueryAndSubscribeWsMsg msg) async {
+    logger.fine('query and subscribe on ${msg.actorId}...');
+
+    try {
+      // 1. Execute query and get changeIDs
+      final (result, changeIDs) = await system.viewStore.queryWithFlatChangeIDs(
+        actorId: msg.actorId,
+        name: '',
+        query: msg.def,
+      );
+
+      // 2. Subscribe to each view using changeID from flat map
+      for (final sub in msg.subs) {
+        final key = sub.subKey;
+
+        if (_viewSubs.containsKey(key)) {
+          logger.warning('already subscribed to $key, skipping');
+          continue;
+        }
+
+        // Get changeId from flat map
+        final viewKey = '${sub.entityName}/${sub.id}/${sub.name}';
+        final changeId = changeIDs[viewKey] ?? '';
+
+        // Create subscription stream starting from changeId
+        final stream = system
+            .changes(
+              entityName: sub.entityName,
+              id: sub.id,
+              name: sub.name,
+              startAt: changeId,
+            )
+            .map((env) => WsMessageBox(id: 0, msg: ViewChangeWsMsg(env)));
+
+        final clientSub = _ClientSubscription(key, changeId, stream);
+        _viewSubs[key] = clientSub;
+        _outStream.add(stream);
+
+        logger.fine('subscribed to $key from changeId $changeId');
+      }
+
+      logger.info('query and subscribe completed for ${msg.actorId}');
+
+      return QueryResultWsMsg(result: result);
+    } catch (e) {
+      logger.warning('query and subscribe error: $e');
+      return ErrorWsMsg(
+        '${e.runtimeType}',
+        'query and subscribe on ${msg.actorId}: $e',
+      );
     }
   }
 
@@ -199,7 +253,8 @@ final class WsSession {
         continue;
       }
 
-      final changeId = sub.changeId;
+      // Start from beginning for simple subscribe (no query snapshot available)
+      final changeId = '';
 
       final stream = system
           .changes(
