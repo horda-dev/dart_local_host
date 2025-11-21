@@ -131,13 +131,16 @@ void main() {
 
       // Verify changeIDs map contains correct keys
       // Note: Initial views have empty changeIDs until first change
-      expect(changeIDs.containsKey('TestEntity/actor1/view1'), isTrue);
-      expect(changeIDs.containsKey('TestEntity/actor1/view2'), isTrue);
+      final viewKey1 = ViewKey('TestEntity', 'actor1', 'view1');
+      final viewKey2 = ViewKey('TestEntity', 'actor1', 'view2');
+
+      expect(changeIDs.containsKey(viewKey1), isTrue);
+      expect(changeIDs.containsKey(viewKey2), isTrue);
       expect(changeIDs.length, 2);
 
       // Verify changeIDs are strings (can be empty initially)
-      expect(changeIDs['TestEntity/actor1/view1'], isA<String>());
-      expect(changeIDs['TestEntity/actor1/view2'], isA<String>());
+      expect(changeIDs[viewKey1], isA<String>());
+      expect(changeIDs[viewKey2], isA<String>());
     });
 
     test('should collect changeIDs from nested Ref queries', () async {
@@ -165,8 +168,10 @@ void main() {
       );
 
       expect(result.views['view1']?.value, 'initial1');
-      expect(changeIDs.containsKey('TestEntity/actor1/view1'), isTrue);
-      expect(changeIDs['TestEntity/actor1/view1'], isA<String>());
+
+      final viewKey = ViewKey('TestEntity', 'actor1', 'view1');
+      expect(changeIDs.containsKey(viewKey), isTrue);
+      expect(changeIDs[viewKey], isA<String>());
     });
   });
 }

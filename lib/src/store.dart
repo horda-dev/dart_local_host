@@ -8,6 +8,38 @@ import 'log.dart';
 import 'process.dart';
 import 'system.dart';
 
+/// Key for identifying a view across the system.
+/// Consists of [entityName], [entityId], and [viewName].
+class ViewKey {
+  const ViewKey(this.entityName, this.entityId, this.viewName);
+
+  final String entityName;
+  final String entityId;
+  final String viewName;
+
+  @override
+  String toString() {
+    // Makes sense when the key is for an attribute. It should have no entity name.
+    if (entityName.isEmpty) {
+      return '$entityId/$viewName';
+    }
+    return '$entityName/$entityId/$viewName';
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ViewKey &&
+          runtimeType == other.runtimeType &&
+          entityName == other.entityName &&
+          entityId == other.entityId &&
+          viewName == other.viewName;
+
+  @override
+  int get hashCode =>
+      entityName.hashCode ^ entityId.hashCode ^ viewName.hashCode;
+}
+
 /// Wrapper for entity commands that includes the entity name for routing.
 /// This is needed to support multiple singleton entities with the same ID.
 class _EntityCommandEnvelope {
@@ -724,10 +756,9 @@ abstract class ViewStore {
     required QueryDef query,
   });
 
-  /// Executes a query and returns both the result and a flat map of all viewKey -> changeID pairs.
+  /// Executes a query and returns both the result and a flat map of all [ViewKey] -> changeID pairs.
   /// The map includes views at all nesting levels (from Ref and List queries).
-  /// ViewKey format: {entityName}/{actorID}/{viewName}
-  Future<(QueryResult, Map<String, String>)> queryWithFlatChangeIDs({
+  Future<(QueryResult, Map<ViewKey, String>)> queryWithFlatChangeIDs({
     required String actorId,
     required String name,
     required QueryDef query,
@@ -845,22 +876,22 @@ class MemoryViewStore implements ViewStore {
   }
 
   @override
-  Future<(QueryResult, Map<String, String>)> queryWithFlatChangeIDs({
+  Future<(QueryResult, Map<ViewKey, String>)> queryWithFlatChangeIDs({
     required String actorId,
     required String name,
     required QueryDef query,
   }) async {
-    final changeIDs = <String, String>{};
+    final changeIDs = <ViewKey, String>{};
     final res = await _visitQuery(query, actorId, changeIDs);
     return (res.build(), changeIDs);
   }
 
   /// Shared recursive query visitor.
-  /// If [changeIDs] is provided, collects viewKey -> changeID mappings for all views at all nesting levels.
+  /// If [changeIDs] is provided, collects [ViewKey] -> changeID mappings for all views at all nesting levels.
   Future<QueryResultBuilder> _visitQuery(
     QueryDef query,
     EntityId actorId,
-    Map<String, String>? changeIDs,
+    Map<ViewKey, String>? changeIDs,
   ) async {
     final qr = QueryResultBuilder();
 
@@ -872,7 +903,7 @@ class MemoryViewStore implements ViewStore {
 
       // Collect changeID if map provided
       if (changeIDs != null) {
-        final viewKey = '${query.entityName}/$actorId/$name';
+        final viewKey = ViewKey(query.entityName, actorId, name);
         changeIDs[viewKey] = viewSnap.changeId;
       }
 

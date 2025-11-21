@@ -117,24 +117,21 @@ final class WsSession {
       );
 
       // 2. Subscribe to each view using changeID from flat map
-      for (final sub in msg.subs) {
-        final key = sub.subKey;
+      for (final MapEntry(key: viewKey, value: changeId) in changeIDs.entries) {
+        final key = viewKey.toString();
 
         if (_viewSubs.containsKey(key)) {
-          logger.warning('already subscribed to $key, skipping');
+          // Unlike in explicit subscribe - here we just ignore existing subs,
+          // because in this case, client can not request subs explicitly.
           continue;
         }
-
-        // Get changeId from flat map
-        final viewKey = '${sub.entityName}/${sub.id}/${sub.name}';
-        final changeId = changeIDs[viewKey] ?? '';
 
         // Create subscription stream starting from changeId
         final stream = system
             .changes(
-              entityName: sub.entityName,
-              id: sub.id,
-              name: sub.name,
+              entityName: viewKey.entityName,
+              id: viewKey.entityId,
+              name: viewKey.viewName,
               startAt: changeId,
             )
             .map((env) => WsMessageBox(id: 0, msg: ViewChangeWsMsg(env)));
