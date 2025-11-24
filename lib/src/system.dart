@@ -167,7 +167,32 @@ final class HordaServerSystem {
       throw FluirError('process group $name already registered');
     }
 
-    _processGroupHosts[name] = ProcessGroupHost(processGroup, this);
+    final host = ProcessGroupHost(processGroup, this);
+    final eventTypes = host.getRegisteredEventTypes();
+
+    // Check for overlapping event handlers across process groups
+    final conflicts = <String, String>{};
+    for (final eventType in eventTypes) {
+      if (_processEventHandlers.containsKey(eventType)) {
+        conflicts[eventType] = _processEventHandlers[eventType]!;
+      }
+    }
+
+    if (conflicts.isNotEmpty) {
+      final conflictDetails = conflicts.entries
+          .map((e) => '  - ${e.key} (already handled by ${e.value})')
+          .join('\n');
+      throw FluirError(
+        'Process group $name has overlapping event handlers with other process groups:\n$conflictDetails',
+      );
+    }
+
+    // Register event types for this process group
+    for (final eventType in eventTypes) {
+      _processEventHandlers[eventType] = name;
+    }
+
+    _processGroupHosts[name] = host;
   }
 
   void stopProcesses() {
@@ -377,6 +402,10 @@ final class HordaServerSystem {
   final _entityHosts = <EntityId, EntityHost>{};
   final _processGroupHosts = <String, ProcessGroupHost>{};
   final _serviceHosts = <String, ServiceHost>{};
+
+  // Tracks which process group handles which event types to detect overlaps
+  final _processEventHandlers =
+      <String, String>{}; // event type -> process group name
 
   final _ticker = Metronome.epoch(
     const Duration(seconds: 1),

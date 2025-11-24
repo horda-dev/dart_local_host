@@ -69,6 +69,46 @@ class AnalyzedPackage {
     }
   }
 
+  Future<void> validateProcessGroupEventHandlers() async {
+    // First, extract event types from all process groups
+    for (final processGroup in processGroups.values) {
+      await processGroup.extractEventTypes();
+    }
+
+    final eventHandlers =
+        <String, List<String>>{}; // event type -> list of process group names
+
+    // Collect all event handlers from all process groups
+    for (final entry in processGroups.entries) {
+      final processGroupName = entry.key;
+      final processGroup = entry.value;
+
+      for (final eventType in processGroup.eventTypes) {
+        eventHandlers.putIfAbsent(eventType, () => []).add(processGroupName);
+      }
+    }
+
+    // Check for overlapping event handlers
+    final hasOverlaps = eventHandlers.values.any(
+      (handlers) => handlers.length > 1,
+    );
+
+    if (hasOverlaps) {
+      print(
+        '\n⚠️  WARNING: Overlapping process group event handlers detected:',
+      );
+      for (final entry in eventHandlers.entries) {
+        if (entry.value.length > 1) {
+          print(
+            '  - Event type "${entry.key}" is handled by: ${entry.value.join(", ")}',
+          );
+        }
+      }
+      print('  This will cause a runtime error when the system starts.');
+      print('  Each event type should only be handled by one process group.\n');
+    }
+  }
+
   void _analyzeActor(ClassElement element) {
     final actor = AnalyzedActor(element);
 
