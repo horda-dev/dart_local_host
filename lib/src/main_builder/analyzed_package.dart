@@ -89,23 +89,27 @@ class AnalyzedPackage {
     }
 
     // Check for overlapping event handlers
-    final hasOverlaps = eventHandlers.values.any(
-      (handlers) => handlers.length > 1,
-    );
-
-    if (hasOverlaps) {
-      print(
-        '\n⚠️  WARNING: Overlapping process group event handlers detected:',
-      );
-      for (final entry in eventHandlers.entries) {
-        if (entry.value.length > 1) {
-          print(
-            '  - Event type "${entry.key}" is handled by: ${entry.value.join(", ")}',
-          );
-        }
+    final overlaps = <String, List<String>>{};
+    for (final entry in eventHandlers.entries) {
+      if (entry.value.length > 1) {
+        overlaps[entry.key] = entry.value;
       }
-      print('  This will cause a runtime error when the system starts.');
-      print('  Each event type should only be handled by one process group.\n');
+    }
+
+    if (overlaps.isNotEmpty) {
+      final errorMessage = StringBuffer();
+      errorMessage.writeln('Process group event handler overlap detected.');
+      errorMessage.writeln(
+        'Each event type must be handled by only one process group.',
+      );
+      errorMessage.writeln('Overlapping handlers:');
+      for (final entry in overlaps.entries) {
+        errorMessage.writeln(
+          '  - ${entry.key}: ${entry.value.join(", ")}',
+        );
+      }
+
+      throw Exception(errorMessage.toString());
     }
   }
 
