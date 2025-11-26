@@ -114,10 +114,10 @@ class HordaTypeChecker {
   );
   final _commandChecker = TypeChecker.typeNamed(
     RemoteCommand,
-    inPackage: 'horda_server',
+    inPackage: 'horda_core',
   );
   final _eventChecker = TypeChecker.typeNamed(
     RemoteEvent,
-    inPackage: 'horda_server',
+    inPackage: 'horda_core',
   );
 }
