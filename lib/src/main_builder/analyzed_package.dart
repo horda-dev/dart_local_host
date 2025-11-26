@@ -70,11 +70,6 @@ class AnalyzedPackage {
   }
 
   Future<void> validateProcessGroupEventHandlers() async {
-    // First, extract event types from all process groups
-    for (final processGroup in processGroups.values) {
-      await processGroup.extractEventTypes();
-    }
-
     final eventHandlers =
         <String, List<String>>{}; // event type -> list of process group names
 
@@ -247,5 +242,5 @@ class AnalyzedPackage {
     }
   }
 
-  final _typeChecker = FluirTypeChecker.instance;
+  final _typeChecker = HordaTypeChecker.instance;
 }
