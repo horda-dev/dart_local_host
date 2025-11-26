@@ -69,6 +69,45 @@ class AnalyzedPackage {
     }
   }
 
+  Future<void> validateProcessGroupEventHandlers() async {
+    final eventHandlers =
+        <String, List<String>>{}; // event type -> list of process group names
+
+    // Collect all event handlers from all process groups
+    for (final entry in processGroups.entries) {
+      final processGroupName = entry.key;
+      final processGroup = entry.value;
+
+      for (final eventType in processGroup.eventTypes) {
+        eventHandlers.putIfAbsent(eventType, () => []).add(processGroupName);
+      }
+    }
+
+    // Check for overlapping event handlers
+    final overlaps = <String, List<String>>{};
+    for (final entry in eventHandlers.entries) {
+      if (entry.value.length > 1) {
+        overlaps[entry.key] = entry.value;
+      }
+    }
+
+    if (overlaps.isNotEmpty) {
+      final errorMessage = StringBuffer();
+      errorMessage.writeln('Process group event handler overlap detected.');
+      errorMessage.writeln(
+        'Each event type must be handled by only one process group.',
+      );
+      errorMessage.writeln('Overlapping handlers:');
+      for (final entry in overlaps.entries) {
+        errorMessage.writeln(
+          '  - ${entry.key}: ${entry.value.join(", ")}',
+        );
+      }
+
+      throw Exception(errorMessage.toString());
+    }
+  }
+
   void _analyzeActor(ClassElement element) {
     final actor = AnalyzedActor(element);
 
@@ -203,5 +242,5 @@ class AnalyzedPackage {
     }
   }
 
-  final _typeChecker = FluirTypeChecker.instance;
+  final _typeChecker = HordaTypeChecker.instance;
 }

@@ -1,3 +1,8 @@
+## 0.6.0
+
+- **FEAT**: support multiple process groups
+- **FEAT**: detect process groups with process funcs which handle the same event type across multiple process groups
+
 ## 0.5.0
 
 - **BREAKING**: rename FlowResult to ProcessResult

@@ -1,4 +1,7 @@
 import 'package:analyzer/dart/element/element.dart';
+import 'package:build/build.dart';
+
+import 'type_checker.dart';
 
 class AnalyzedClass {
   AnalyzedClass(this.element);
@@ -39,6 +42,28 @@ class AnalyzedService extends AnalyzedClass {
 
 class AnalyzedProcessGroup extends AnalyzedClass {
   AnalyzedProcessGroup(super.element);
+
+  Set<String> get eventTypes {
+    final processes = element.methods.where(
+      (m) => HordaTypeChecker.instance.isProcess(m),
+    );
+
+    final names = processes.map((p) {
+      final firstParameterType = p.formalParameters.first.type
+          .getDisplayString();
+
+      if (firstParameterType.isEmpty) {
+        log.warning(
+          'Failed to extract process name in method: ${p.displayName}',
+        );
+        return 'NO_NAME';
+      }
+
+      return firstParameterType;
+    });
+
+    return names.toSet();
+  }
 }
 
 class AnalyzedCommand extends AnalyzedClass {

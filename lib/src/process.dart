@@ -27,6 +27,10 @@ class ProcessGroupHost {
 
   String get name => processGroup.runtimeType.toString();
 
+  Set<String> getRegisteredEventTypes() {
+    return _funcs._eventFactories.keys.toSet();
+  }
+
   void stop() {
     logger.fine('$name host stopping...');
 

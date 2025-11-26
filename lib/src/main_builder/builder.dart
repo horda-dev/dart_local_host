@@ -79,6 +79,7 @@ class MainBuilder implements Builder {
     }
 
     analyzedPackage.linkStatesAndViewGroupsToActors();
+    await analyzedPackage.validateProcessGroupEventHandlers();
 
     return analyzedPackage;
   }

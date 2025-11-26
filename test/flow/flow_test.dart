@@ -350,6 +350,44 @@ void main() {
     expect(result.value, 'handled test event 1');
     expect(result.isError, false);
   });
+
+  test(
+    'should throw error when registering process groups with overlapping event handlers',
+    () {
+      final system = HordaServerTestSystem();
+
+      // Register first process group that handles TestEvent1
+      system.registerProcessGroup(TestProcess1());
+
+      // Create a second process group that also handles TestEvent1
+      final overlappingProcess = _OverlappingTestProcessGroup();
+
+      // Attempt to register second process group with same event handler
+      // This should throw a FluirError
+      expect(
+        () => system.registerProcessGroup(overlappingProcess),
+        throwsA(
+          isA<FluirError>().having(
+            (e) => e.toString(),
+            'error message',
+            contains('overlapping event handlers'),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+// Process group that intentionally overlaps with TestProcess1 on TestEvent1
+class _OverlappingTestProcessGroup extends ProcessGroup {
+  Future<ProcessResult> handle(TestEvent1 event, ProcessContext context) async {
+    return ProcessResult.ok();
+  }
+
+  @override
+  void registerFuncs(ProcessFuncs funcs) {
+    funcs.add<TestEvent1>(handle, TestEvent1.fromJson);
+  }
 }
 
 void expectDelayed<T>(T Function() cb, dynamic matcher) {
