@@ -1,3 +1,9 @@
+## 0.7.0
+
+- **FEAT**: support atomic query and subscribe
+- **CHORE**: update horda_core to 0.18.0
+- **CHORE**: update horda_server to 0.19.0
+
 ## 0.6.0
 
 - **FEAT**: support multiple process groups
