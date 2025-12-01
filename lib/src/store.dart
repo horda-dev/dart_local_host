@@ -8,6 +8,38 @@ import 'log.dart';
 import 'process.dart';
 import 'system.dart';
 
+/// Key for identifying a view across the system.
+/// Consists of [entityName], [entityId], and [viewName].
+class ViewKey {
+  const ViewKey(this.entityName, this.entityId, this.viewName);
+
+  final String entityName;
+  final String entityId;
+  final String viewName;
+
+  @override
+  String toString() {
+    // Makes sense when the key is for an attribute. It should have no entity name.
+    if (entityName.isEmpty) {
+      return '$entityId/$viewName';
+    }
+    return '$entityName/$entityId/$viewName';
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ViewKey &&
+          runtimeType == other.runtimeType &&
+          entityName == other.entityName &&
+          entityId == other.entityId &&
+          viewName == other.viewName;
+
+  @override
+  int get hashCode =>
+      entityName.hashCode ^ entityId.hashCode ^ viewName.hashCode;
+}
+
 /// Wrapper for entity commands that includes the entity name for routing.
 /// This is needed to support multiple singleton entities with the same ID.
 class _EntityCommandEnvelope {
@@ -724,6 +756,14 @@ abstract class ViewStore {
     required QueryDef query,
   });
 
+  /// Executes a query and returns both the result and a flat map of all [ViewKey] -> changeID pairs.
+  /// The map includes views at all nesting levels (from Ref and List queries).
+  Future<(QueryResult, Map<ViewKey, String>)> queryWithFlatChangeIDs({
+    required String actorId,
+    required String name,
+    required QueryDef query,
+  });
+
   Future<void> seed(Map<String, dynamic> seed);
 }
 
@@ -831,87 +871,111 @@ class MemoryViewStore implements ViewStore {
     required String name,
     required QueryDef query,
   }) async {
-    Future<QueryResultBuilder> visitQuery(
-      QueryDef query,
-      EntityId actorId,
-    ) async {
-      final qr = QueryResultBuilder();
+    final res = await _visitQuery(query, actorId, null);
+    return res.build();
+  }
 
-      for (final entry in query.views.entries) {
-        final name = entry.key;
-        final view = entry.value;
+  @override
+  Future<(QueryResult, Map<ViewKey, String>)> queryWithFlatChangeIDs({
+    required String actorId,
+    required String name,
+    required QueryDef query,
+  }) async {
+    final changeIDs = <ViewKey, String>{};
+    final res = await _visitQuery(query, actorId, changeIDs);
+    return (res.build(), changeIDs);
+  }
 
-        final viewSnap = await viewSnapshot(query.entityName, actorId, name);
+  /// Shared recursive query visitor.
+  /// If [changeIDs] is provided, collects [ViewKey] -> changeID mappings for all views at all nesting levels.
+  Future<QueryResultBuilder> _visitQuery(
+    QueryDef query,
+    EntityId actorId,
+    Map<ViewKey, String>? changeIDs,
+  ) async {
+    final qr = QueryResultBuilder();
 
-        if (view is ValueQueryDef) {
-          qr.add(ValueQueryResultBuilder(name, viewSnap));
-        } else if (view is RefQueryDef) {
-          if (viewSnap.isNull) {
-            // no attrs and subquery run for null ref
-            qr.add(RefQueryResultBuilder(name, viewSnap, {}, null));
-            continue;
-          }
+    for (final entry in query.views.entries) {
+      final name = entry.key;
+      final view = entry.value;
 
-          // getting attributes values if requested
-          final attrs = <String, dynamic>{};
-          for (final attr in view.attrs) {
-            final attrSnap = await attributeSnapshot(
-              actorId,
-              viewSnap.value,
-              attr,
-            );
-            attrs[attr] = attrSnap.toJson();
-          }
+      final viewSnap = await viewSnapshot(query.entityName, actorId, name);
 
-          // running subquery
-          final subquery = await visitQuery(view.query, viewSnap.value);
-          final res = RefQueryResultBuilder(
-            name,
-            viewSnap,
-            attrs,
-            subquery,
-          );
-          qr.add(res);
-        } else if (view is ListQueryDef) {
-          final items = <QueryResultBuilder>[];
-          // maps itemId to {'attrName': attrValue}
-          final allAttrs = <String, Map<String, dynamic>>{};
-
-          for (final itemId in viewSnap.value as List<EntityId>) {
-            // getting attr values for item id
-            final itemAttrs = <String, dynamic>{};
-            for (final attrName in view.attrs) {
-              final attrSnap = await attributeSnapshot(
-                actorId,
-                itemId,
-                attrName,
-              );
-              itemAttrs[attrName] = attrSnap.toJson();
-            }
-
-            if (itemAttrs.isNotEmpty) {
-              allAttrs[itemId] = itemAttrs;
-            }
-
-            // running subquery for item id
-            items.add(
-              await visitQuery(view.query, itemId),
-            );
-          }
-
-          qr.add(
-            ListQueryResultBuilder(entry.key, allAttrs, viewSnap, items),
-          );
-        } else {
-          throw FluirError('unknown query def ${view.runtimeType}');
-        }
+      // Collect changeID if map provided
+      if (changeIDs != null) {
+        final viewKey = ViewKey(query.entityName, actorId, name);
+        changeIDs[viewKey] = viewSnap.changeId;
       }
 
-      return qr;
+      if (view is ValueQueryDef) {
+        qr.add(ValueQueryResultBuilder(name, viewSnap));
+      } else if (view is RefQueryDef) {
+        if (viewSnap.isNull) {
+          // no attrs and subquery run for null ref
+          qr.add(RefQueryResultBuilder(name, viewSnap, {}, null));
+          continue;
+        }
+
+        // getting attributes values if requested
+        final attrs = <String, dynamic>{};
+        for (final attr in view.attrs) {
+          final attrSnap = await attributeSnapshot(
+            actorId,
+            viewSnap.value,
+            attr,
+          );
+          attrs[attr] = attrSnap.toJson();
+        }
+
+        // running subquery (recursively collects changeIDs if map provided)
+        final subquery = await _visitQuery(
+          view.query,
+          viewSnap.value,
+          changeIDs,
+        );
+        final res = RefQueryResultBuilder(
+          name,
+          viewSnap,
+          attrs,
+          subquery,
+        );
+        qr.add(res);
+      } else if (view is ListQueryDef) {
+        final items = <QueryResultBuilder>[];
+        // maps itemId to {'attrName': attrValue}
+        final allAttrs = <String, Map<String, dynamic>>{};
+
+        for (final itemId in viewSnap.value as List<EntityId>) {
+          // getting attr values for item id
+          final itemAttrs = <String, dynamic>{};
+          for (final attrName in view.attrs) {
+            final attrSnap = await attributeSnapshot(
+              actorId,
+              itemId,
+              attrName,
+            );
+            itemAttrs[attrName] = attrSnap.toJson();
+          }
+
+          if (itemAttrs.isNotEmpty) {
+            allAttrs[itemId] = itemAttrs;
+          }
+
+          // running subquery for item id (recursively collects changeIDs if map provided)
+          items.add(
+            await _visitQuery(view.query, itemId, changeIDs),
+          );
+        }
+
+        qr.add(
+          ListQueryResultBuilder(entry.key, allAttrs, viewSnap, items),
+        );
+      } else {
+        throw FluirError('unknown query def ${view.runtimeType}');
+      }
     }
 
-    final res = await visitQuery(query, actorId);
-    return res.build();
+    return qr;
   }
 
   void _project(ChangeEnvelop env) async {
