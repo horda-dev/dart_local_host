@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:horda_server/horda_server.dart';
 import 'package:logging/logging.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:xid/xid.dart';
 
 import 'log.dart';
 import 'process.dart';
@@ -732,8 +733,6 @@ abstract class ViewStore {
 
   void stopProjectingChanges();
 
-  Future<void> setViewDefaults(String entityName, List<DefaultViewValue> views);
-
   Future<void> initEntityViews(
     String entityName,
     EntityId entityId,
@@ -815,19 +814,6 @@ class MemoryViewStore implements ViewStore {
   }
 
   @override
-  Future<void> setViewDefaults(
-    String entityName,
-    List<DefaultViewValue> views,
-  ) async {
-    for (final view in views) {
-      await snapStore.set(
-        '$entityName/__default/${view.name}',
-        ViewSnapshot(view.value, ''),
-      );
-    }
-  }
-
-  @override
   Future<void> initEntityViews(
     String entityName,
     EntityId entityId,
@@ -836,9 +822,18 @@ class MemoryViewStore implements ViewStore {
     for (final view in views) {
       final snapKey = '$entityName/${view.key}/${view.name}';
 
+      dynamic snapValue = view.value;
+
+      // Create item keys for RefListView
+      if (view.type == 'RefListView') {
+        snapValue = (view.value as List<String>).map(
+          (v) => ListItem(Xid().toString(), v),
+        );
+      }
+
       await snapStore.set(
         snapKey,
-        ViewSnapshot(view.value, ''),
+        ViewSnapshot(snapValue, ''),
       );
     }
   }
@@ -1185,18 +1180,12 @@ class DefaultViews implements ViewGroup {
   @override
   void add(View view) {
     views.add(view);
-    defaultValues.add(
-      DefaultViewValue(view.name, view.defaultValue),
+    view.entityId = '__default';
+    defaultValues.addAll(
+      view.initValues(),
     );
   }
 
   final views = <View>[];
-  final defaultValues = <DefaultViewValue>[];
-}
-
-class DefaultViewValue {
-  const DefaultViewValue(this.name, this.value);
-
-  final String name;
-  final dynamic value;
+  final defaultValues = <InitViewData>[];
 }

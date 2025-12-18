@@ -118,9 +118,14 @@ final class HordaServerSystem {
       return EntityHost<S>(entityId, entity, defaultViewGroup, this);
     };
 
+    // Init default view values
     final defaultViews = DefaultViews();
     defaultViewGroup.initViews(defaultViews);
-    viewStore.setViewDefaults(entity.name, defaultViews.defaultValues);
+    viewStore.initEntityViews(
+      entity.name,
+      '__default',
+      defaultViews.defaultValues,
+    );
 
     // Pre-create singleton entities immediately with ID = kSingletonId
     if (entity.singleton != null) {
