@@ -5,6 +5,8 @@ import 'package:logging/logging.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:xid/xid.dart';
 
+import 'list_page_manager.dart';
+import 'list_view_page.dart';
 import 'log.dart';
 import 'process.dart';
 import 'system.dart';
@@ -793,7 +795,7 @@ const kViewCacheByCountCondition = 10;
 const kViewCacheByTimeCondition = Duration(seconds: 2);
 
 class MemoryViewStore implements ViewStore {
-  MemoryViewStore(this.messageStore, this.snapStore)
+  MemoryViewStore(this.messageStore, this.snapStore, this.pageManager)
     : logger = Logger('Horda.ViewStore');
 
   final Logger logger;
@@ -801,6 +803,8 @@ class MemoryViewStore implements ViewStore {
   final MessageStore messageStore;
 
   final KeyValueStore snapStore;
+
+  final ListPageManager pageManager;
 
   @override
   void startProjectingChanges(Stream<ChangeEnvelop> changes) {
@@ -956,6 +960,25 @@ class MemoryViewStore implements ViewStore {
         );
         qr.add(res);
       } else if (view is ListQueryDef) {
+        _throwIfInvalidPaginationParams(view);
+
+        final pageItems = _getRangeFromRefListSnapshot(
+          viewSnap,
+          view.startAfter,
+          view.endBefore,
+          view.limit,
+        );
+
+        final page = _createListPage(
+          ViewKey(query.entityName, actorId, name),
+          view.startAfter,
+          view.endBefore,
+          view.limit,
+          pageItems,
+        );
+
+        pageManager.addPage(page);
+
         final items = <QueryResultBuilder>[];
         // maps itemId to {'attrName': attrValue}
         final allAttrs = <String, Map<String, dynamic>>{};
@@ -983,7 +1006,13 @@ class MemoryViewStore implements ViewStore {
         }
 
         qr.add(
-          ListQueryResultBuilder(entry.key, allAttrs, viewSnap, items),
+          ListQueryResultBuilder(
+            entry.key,
+            allAttrs,
+            ViewSnapshot(pageItems, viewSnap.changeId),
+            items,
+            page.pageId,
+          ),
         );
       } else {
         throw FluirError('unknown query def ${view.runtimeType}');
@@ -1076,8 +1105,6 @@ class MemoryViewStore implements ViewStore {
     };
   }
 
-  StreamSubscription<ChangeEnvelop>? _viewUpdaterSub;
-
   @override
   Future<ListItem?> getNextListItem(
     String entityName,
@@ -1121,6 +1148,94 @@ class MemoryViewStore implements ViewStore {
 
     return items[previousIndex];
   }
+
+  List<ListItem> _getRangeFromRefListSnapshot(
+    ViewSnapshot snap,
+    String startAfter,
+    String endBefore,
+    int limit,
+  ) {
+    final list = snap.value as List<ListItem>;
+
+    // Find start index (exclusive of startAfter)
+    int startIndex = 0;
+    if (startAfter.isNotEmpty) {
+      final afterIndex = list.indexWhere((item) => item.key == startAfter);
+      if (afterIndex != -1) {
+        startIndex = afterIndex + 1;
+      }
+    }
+
+    // Find end index (exclusive of endBefore)
+    int endIndex = list.length;
+    if (endBefore.isNotEmpty) {
+      final beforeIndex = list.indexWhere((item) => item.key == endBefore);
+      if (beforeIndex != -1) {
+        endIndex = beforeIndex;
+      }
+    }
+
+    // Get the sublist within boundaries
+    var result = list.sublist(startIndex, endIndex);
+
+    // Apply limit
+    final absLimit = limit.abs();
+    if (result.length > absLimit) {
+      if (limit > 0) {
+        // Positive limit: take first N elements
+        result = result.sublist(0, absLimit);
+      } else {
+        // Negative limit: take last N elements
+        result = result.sublist(result.length - absLimit);
+      }
+    }
+
+    return result;
+  }
+
+  ListViewPage _createListPage(
+    ViewKey viewKey,
+    String startAfter,
+    String endBefore,
+    int limit,
+    List<ListItem> pageItems,
+  ) {
+    return ListViewPage(
+      pageId: Xid().toString(),
+      startAfter: startAfter,
+      endBefore: endBefore,
+      lo: pageItems.firstOrNull?.key ?? '',
+      hi: pageItems.lastOrNull?.key ?? '',
+      limit: limit,
+      currentSize: pageItems.length,
+      viewKey: viewKey,
+      viewStore: this,
+    );
+  }
+
+  void _throwIfInvalidPaginationParams(ListQueryDef def) {
+    if (def.limit == 0) {
+      throw ArgumentError.value(
+        def.limit,
+        'limit',
+        'list view limit can not be 0',
+      );
+    }
+
+    if (def.limit > 0 && def.endBefore.isNotEmpty) {
+      throw ArgumentError(
+        'endBefore can not be used with forward pagination',
+      );
+    }
+
+    if (def.limit < 0 && def.startAfter.isNotEmpty) {
+      throw ArgumentError(
+        'startAfter can not be used with reverse pagination',
+      );
+    }
+  }
+
+  StreamSubscription<ChangeEnvelop>? _viewUpdaterSub;
 }
 
 abstract class KeyValueStore {
