@@ -17,9 +17,7 @@ class ListViewPage {
     required this.hi,
     required this.limit,
     required this.currentSize,
-    required this.entityName,
-    required this.entityId,
-    required this.viewName,
+    required this.viewKey,
     required this.viewStore,
   });
 
@@ -45,20 +43,11 @@ class ListViewPage {
   /// Current number of items in the window.
   int currentSize;
 
-  /// Name of the entity type.
-  final String entityName;
-
-  /// ID of the specific entity instance.
-  final EntityId entityId;
-
-  /// Name of the view.
-  final String viewName;
+  /// View key identifying the view (entityName, entityId, viewName).
+  final ViewKey viewKey;
 
   /// View store for querying list items.
   final ViewStore viewStore;
-
-  /// Returns the view key for tracking purposes.
-  String get viewKey => '$entityName/$entityId/$viewName';
 
   /// Returns true if this is a reverse pagination page (limit < 0).
   bool get isReverse => limit < 0;
@@ -155,12 +144,17 @@ class ListViewPage {
     // Query for backfill item
     final backfillItem = isReverse
         ? await viewStore.getPreviousListItem(
-            entityName,
-            entityId,
-            viewName,
+            viewKey.entityName,
+            viewKey.entityId,
+            viewKey.viewName,
             lo,
           )
-        : await viewStore.getNextListItem(entityName, entityId, viewName, hi);
+        : await viewStore.getNextListItem(
+            viewKey.entityName,
+            viewKey.entityId,
+            viewKey.viewName,
+            hi,
+          );
 
     if (backfillItem != null) {
       // Add backfill item
@@ -261,9 +255,9 @@ class ListViewPage {
   /// the first item is pushed out and the new item is added at the end.
   Future<List<Change>> _handlePushout(String key, String value) async {
     final nextItem = await viewStore.getNextListItem(
-      entityName,
-      entityId,
-      viewName,
+      viewKey.entityName,
+      viewKey.entityId,
+      viewKey.viewName,
       lo,
     );
 
