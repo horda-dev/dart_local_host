@@ -247,7 +247,7 @@ final class WsSession {
     logger.fine('subscribing to ${msg.subs.length} views...');
 
     for (final sub in msg.subs) {
-      final key = sub.subKey;
+      final key = sub.viewKey;
 
       if (_viewSubs.containsKey(key)) {
         logger.warning('duplicate subscription request for $key');
@@ -284,22 +284,52 @@ final class WsSession {
     logger.fine('unsubscribing from ${msg.subs.length} views...');
 
     for (var sub in msg.subs) {
-      var key = sub.subKey;
-
-      if (!_viewSubs.containsKey(key)) {
-        logger.warning('no subscription found for $key');
-        continue;
+      if (sub.pageId != null) {
+        _unsubscribeFromListView(sub);
+      } else {
+        _unsubscribeFromView(sub);
       }
-
-      var activeSub = _viewSubs[key]!;
-      _outStream.remove(activeSub.stream);
-      _viewSubs.remove(key);
-
-      logger.fine('unsubscribed from $sub');
     }
 
     logger.info('unsubscribed');
     return UnsubscribeViewsResWsMsg();
+  }
+
+  void _unsubscribeFromListView(ActorViewSub sub) {
+    // Remove page from page manager
+    pageManager.removePage(sub.pageId!);
+
+    // Check if any other pages exist for this view
+    final viewKey = ViewKey(sub.entityName, sub.id, sub.name);
+    final hasOtherPages = pageManager.hasPagesForView(viewKey);
+
+    if (hasOtherPages) {
+      logger.fine('removed page ${sub.pageId} from $sub (other pages remain)');
+      return;
+    }
+
+    // No pages remain, unsubscribe from view stream
+    final key = sub.viewKey; // Use viewKey (without pageId)
+    if (_viewSubs.containsKey(key)) {
+      final activeSub = _viewSubs[key]!;
+      _outStream.remove(activeSub.stream);
+      _viewSubs.remove(key);
+      logger.fine('unsubscribed from list view $sub (no pages remain)');
+    }
+  }
+
+  void _unsubscribeFromView(ActorViewSub sub) {
+    final key = sub.viewKey;
+
+    if (!_viewSubs.containsKey(key)) {
+      logger.warning('no subscription found for $key');
+      return;
+    }
+
+    final activeSub = _viewSubs[key]!;
+    _outStream.remove(activeSub.stream);
+    _viewSubs.remove(key);
+    logger.fine('unsubscribed from $sub');
   }
 
   void _onError(dynamic error) {
