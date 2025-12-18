@@ -842,9 +842,11 @@ class MemoryViewStore implements ViewStore {
 
       // Create item keys for RefListView
       if (view.type == 'RefListView') {
-        snapValue = (view.value as List<String>).map(
-          (v) => ListItem(Xid().toString(), v),
-        );
+        snapValue = (view.value as List<String>)
+            .map((v) => ListItem(Xid().toString(), v))
+            // Make sure that assigned value is of type List<ListItem>!
+            // Method map() returns MappedListIterable<String, ListItem>.
+            .toList();
       }
 
       await snapStore.set(
