@@ -765,6 +765,26 @@ abstract class ViewStore {
   });
 
   Future<void> seed(Map<String, dynamic> seed);
+
+  /// Returns the next item in a list view after the given key.
+  /// Returns null if no item exists after the key.
+  /// Items are ordered lexicographically by their keys.
+  Future<ListItem?> getNextListItem(
+    String entityName,
+    EntityId entityId,
+    String viewName,
+    String afterKey,
+  );
+
+  /// Returns the previous item in a list view before the given key.
+  /// Returns null if no item exists before the key.
+  /// Items are ordered lexicographically by their keys.
+  Future<ListItem?> getPreviousListItem(
+    String entityName,
+    EntityId entityId,
+    String viewName,
+    String beforeKey,
+  );
 }
 
 /// Determines the count of changes to be stored before caching view value.
@@ -1062,6 +1082,50 @@ class MemoryViewStore implements ViewStore {
   }
 
   StreamSubscription<ChangeEnvelop>? _viewUpdaterSub;
+
+  @override
+  Future<ListItem?> getNextListItem(
+    String entityName,
+    EntityId entityId,
+    String viewName,
+    String afterKey,
+  ) async {
+    final snapshot = await viewSnapshot(entityName, entityId, viewName);
+    final items = snapshot.value as List<ListItem>;
+
+    final afterIndex = items.indexWhere((i) => i.key == afterKey);
+
+    final nextIndex = afterIndex + 1;
+
+    if (nextIndex >= items.length) {
+      // No next item exists, we went out of bounds.
+      return null;
+    }
+
+    return items[nextIndex];
+  }
+
+  @override
+  Future<ListItem?> getPreviousListItem(
+    String entityName,
+    EntityId entityId,
+    String viewName,
+    String beforeKey,
+  ) async {
+    final snapshot = await viewSnapshot(entityName, entityId, viewName);
+    final items = snapshot.value as List<ListItem>;
+
+    final beforeIndex = items.indexWhere((i) => i.key == beforeKey);
+
+    final previousIndex = beforeIndex - 1;
+
+    if (previousIndex < 0) {
+      // No previous item exists, we went out of bounds.
+      return null;
+    }
+
+    return items[previousIndex];
+  }
 }
 
 abstract class KeyValueStore {
