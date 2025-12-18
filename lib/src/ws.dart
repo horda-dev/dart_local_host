@@ -5,7 +5,9 @@ import 'package:horda_server/horda_server.dart';
 import 'package:logging/logging.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import 'list_page_manager.dart';
 import 'log.dart';
+import 'store.dart';
 import 'system.dart';
 
 final class WsSession {
@@ -18,6 +20,8 @@ final class WsSession {
   final Logger logger;
 
   final HordaServerSystem system;
+
+  final pageManager = ListPageManager();
 
   String get id => '$sessionId:$userId';
 
@@ -134,7 +138,7 @@ final class WsSession {
               name: viewKey.viewName,
               startAt: changeId,
             )
-            .map((env) => WsMessageBox(id: 0, msg: ViewChangeWsMsg(env)));
+            .asyncMap(_processChangeEnvelope);
 
         final clientSub = _ClientSubscription(key, changeId, stream);
         _viewSubs[key] = clientSub;
@@ -260,9 +264,7 @@ final class WsSession {
             name: sub.name,
             startAt: changeId,
           )
-          .map(
-            (env) => WsMessageBox(id: 0, msg: ViewChangeWsMsg(env)),
-          );
+          .asyncMap(_processChangeEnvelope);
 
       final clientSub = _ClientSubscription(key, changeId, stream);
 
@@ -316,6 +318,28 @@ final class WsSession {
 
     logger.info('$id sent box: $box');
     logger.fine('$id sent json: $json');
+  }
+
+  /// Processes a change envelope through the page manager before sending to client.
+  ///
+  /// This is the single entry point for all change envelopes flowing to the client.
+  /// It runs the envelope through the page manager to convert list-level changes
+  /// into page-specific sync changes.
+  Future<WsMessageBox> _processChangeEnvelope(ChangeEnvelop env) async {
+    var processedEnv = env;
+
+    final viewKey = ViewKey(env.entityName, env.key, env.name);
+
+    // Run through page manager to get page sync changes
+    if (pageManager.hasPagesForView(viewKey)) {
+      processedEnv = await pageManager.handleChangeEnvelope(env);
+    }
+
+    // Wrap in message box
+    return WsMessageBox(
+      id: 0,
+      msg: ViewChangeWsMsg(processedEnv),
+    );
   }
 
   final _outStream = StreamGroup<WsMessageBox>.broadcast();
