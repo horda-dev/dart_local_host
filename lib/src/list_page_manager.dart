@@ -46,15 +46,8 @@ class ListPageManager {
 
     final pages = _viewPages[viewKey];
     if (pages == null || pages.isEmpty) {
-      // No pages for this view, return with empty change list.
-      // Client must only receive ListPage* changes, so we avoid sending the original ListView* changes here.
-      return ChangeEnvelop(
-        entityName: env.entityName,
-        changeId: env.changeId,
-        key: env.key,
-        name: env.name,
-        changes: [],
-      );
+      // No pages exist for this view, return the original envelope.
+      return env;
     }
 
     // Collect all page sync changes
@@ -80,6 +73,11 @@ class ListPageManager {
 
         pageSyncChangesOfAllPages.addAll(pageSyncChanges);
       }
+    }
+
+    if (pageSyncChangesOfAllPages.isEmpty) {
+      // No page sync changes were added, return the original envelope.
+      return env;
     }
 
     // Return new envelope with page sync changes
