@@ -1017,7 +1017,8 @@ class MemoryViewStore implements ViewStore {
         // maps itemId to {'attrName': attrValue}
         final allAttrs = <String, Map<String, dynamic>>{};
 
-        for (final itemId in viewSnap.value as List<EntityId>) {
+        for (final pageItem in pageItems) {
+          final itemId = pageItem.value;
           // getting attr values for item id
           final itemAttrs = <String, dynamic>{};
           for (final attrName in view.attrs) {
