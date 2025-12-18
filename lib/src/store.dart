@@ -5,7 +5,6 @@ import 'package:logging/logging.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:xid/xid.dart';
 
-import 'list_page_manager.dart';
 import 'list_view_page.dart';
 import 'log.dart';
 import 'process.dart';
@@ -41,6 +40,20 @@ class ViewKey {
   @override
   int get hashCode =>
       entityName.hashCode ^ entityId.hashCode ^ viewName.hashCode;
+}
+
+/// Result of a query for atomic query and subscribe operation.
+/// Contains the query result, change IDs for all views, and list pages.
+class QueryForSubscriptionResult {
+  QueryForSubscriptionResult(this.queryResult, this.changeIDs, this.pages);
+
+  final QueryResult queryResult;
+
+  /// ChangeIDs for queried views must be used to create subscriptions.
+  final Map<ViewKey, String> changeIDs;
+
+  /// Pages must be added to the page manager to perform real-time sync of queried list view pages.
+  final List<ListViewPage> pages;
 }
 
 /// Wrapper for entity commands that includes the entity name for routing.
@@ -757,9 +770,10 @@ abstract class ViewStore {
     required QueryDef query,
   });
 
-  /// Executes a query and returns both the result and a flat map of all [ViewKey] -> changeID pairs.
-  /// The map includes views at all nesting levels (from Ref and List queries).
-  Future<(QueryResult, Map<ViewKey, String>)> queryWithFlatChangeIDs({
+  /// Executes a query and returns the result, change IDs, and list pages.
+  /// The changeIDs map includes views at all nesting levels (from Ref and List queries).
+  /// The pages list includes all list view pages created during the query.
+  Future<QueryForSubscriptionResult> queryForSubscription({
     required String actorId,
     required String name,
     required QueryDef query,
@@ -795,7 +809,7 @@ const kViewCacheByCountCondition = 10;
 const kViewCacheByTimeCondition = Duration(seconds: 2);
 
 class MemoryViewStore implements ViewStore {
-  MemoryViewStore(this.messageStore, this.snapStore, this.pageManager)
+  MemoryViewStore(this.messageStore, this.snapStore)
     : logger = Logger('Horda.ViewStore');
 
   final Logger logger;
@@ -803,8 +817,6 @@ class MemoryViewStore implements ViewStore {
   final MessageStore messageStore;
 
   final KeyValueStore snapStore;
-
-  final ListPageManager pageManager;
 
   @override
   void startProjectingChanges(Stream<ChangeEnvelop> changes) {
@@ -890,27 +902,44 @@ class MemoryViewStore implements ViewStore {
     required String name,
     required QueryDef query,
   }) async {
-    final res = await _visitQuery(query, actorId, null);
+    final res = await _visitQuery(
+      query,
+      actorId,
+      // We don't perform subscriptions, so pass null.
+      null,
+      // We don't perform real-time sync of list view pages, so pass null.
+      null,
+    );
     return res.build();
   }
 
   @override
-  Future<(QueryResult, Map<ViewKey, String>)> queryWithFlatChangeIDs({
+  Future<QueryForSubscriptionResult> queryForSubscription({
     required String actorId,
     required String name,
     required QueryDef query,
   }) async {
     final changeIDs = <ViewKey, String>{};
-    final res = await _visitQuery(query, actorId, changeIDs);
-    return (res.build(), changeIDs);
+    final pages = <ListViewPage>[];
+
+    final res = await _visitQuery(
+      query,
+      actorId,
+      changeIDs,
+      pages,
+    );
+
+    return QueryForSubscriptionResult(res.build(), changeIDs, pages);
   }
 
   /// Shared recursive query visitor.
   /// If [changeIDs] is provided, collects [ViewKey] -> changeID mappings for all views at all nesting levels.
+  /// If [pages] is provided, collects [ListViewPage] objects for all list views at all nesting levels.
   Future<QueryResultBuilder> _visitQuery(
     QueryDef query,
     EntityId actorId,
     Map<ViewKey, String>? changeIDs,
+    List<ListViewPage>? pages,
   ) async {
     final qr = QueryResultBuilder();
 
@@ -946,11 +975,12 @@ class MemoryViewStore implements ViewStore {
           attrs[attr] = attrSnap.toJson();
         }
 
-        // running subquery (recursively collects changeIDs if map provided)
+        // running subquery (recursively collects changeIDs and pages if provided)
         final subquery = await _visitQuery(
           view.query,
           viewSnap.value,
           changeIDs,
+          pages,
         );
         final res = RefQueryResultBuilder(
           name,
@@ -969,15 +999,19 @@ class MemoryViewStore implements ViewStore {
           view.limit,
         );
 
-        final page = _createListPage(
-          ViewKey(query.entityName, actorId, name),
-          view.startAfter,
-          view.endBefore,
-          view.limit,
-          pageItems,
-        );
+        var pageId = '';
 
-        pageManager.addPage(page);
+        if (pages != null) {
+          final page = _createListPage(
+            ViewKey(query.entityName, actorId, name),
+            view.startAfter,
+            view.endBefore,
+            view.limit,
+            pageItems,
+          );
+          pageId = page.pageId;
+          pages.add(page);
+        }
 
         final items = <QueryResultBuilder>[];
         // maps itemId to {'attrName': attrValue}
@@ -999,9 +1033,9 @@ class MemoryViewStore implements ViewStore {
             allAttrs[itemId] = itemAttrs;
           }
 
-          // running subquery for item id (recursively collects changeIDs if map provided)
+          // running subquery for item id (recursively collects changeIDs and pages if provided)
           items.add(
-            await _visitQuery(view.query, itemId, changeIDs),
+            await _visitQuery(view.query, itemId, changeIDs, pages),
           );
         }
 
@@ -1011,7 +1045,7 @@ class MemoryViewStore implements ViewStore {
             allAttrs,
             ViewSnapshot(pageItems, viewSnap.changeId),
             items,
-            page.pageId,
+            pageId,
           ),
         );
       } else {

@@ -113,16 +113,23 @@ final class WsSession {
     logger.fine('query and subscribe on ${msg.actorId}...');
 
     try {
-      // 1. Execute query and get changeIDs
-      final (result, changeIDs) = await system.viewStore.queryWithFlatChangeIDs(
+      // Execute query and get result, changeIDs, and pages
+      final res = await system.viewStore.queryForSubscription(
         actorId: msg.actorId,
         name: '',
         query: msg.def,
       );
 
-      // 2. Subscribe to each view using changeID from flat map
-      for (final MapEntry(key: viewKey, value: changeId) in changeIDs.entries) {
+      // Add pages to page manager after successful query
+      for (final page in res.pages) {
+        pageManager.addPage(page);
+      }
+
+      // Subscribe to each view using changeID from flat map
+      for (final entry in res.changeIDs.entries) {
+        final viewKey = entry.key;
         final key = viewKey.toString();
+        final changeId = entry.value;
 
         if (_viewSubs.containsKey(key)) {
           // Unlike in explicit subscribe - here we just ignore existing subs,
@@ -149,7 +156,9 @@ final class WsSession {
 
       logger.info('query and subscribe completed for ${msg.actorId}');
 
-      return QueryResultWsMsg(result: result);
+      return QueryResultWsMsg(
+        result: res.queryResult,
+      );
     } catch (e) {
       logger.warning('query and subscribe error: $e');
       return ErrorWsMsg(
