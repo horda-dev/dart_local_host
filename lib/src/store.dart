@@ -1030,17 +1030,27 @@ class MemoryViewStore implements ViewStore {
       // Ref
       RefViewChanged() => change.newValue,
       // List
-      ListViewItemAdded() => (currentValue as List<String>)..add(change.itemId),
+      ListViewItemAdded() =>
+        (currentValue as List<ListItem>)..add(
+          ListItem(change.key, change.value),
+        ),
       ListViewItemAddedIfAbsent() => () {
-        currentValue as List<String>;
-        if (currentValue.contains(change.itemId)) {
+        currentValue as List<ListItem>;
+        final contains =
+            currentValue.indexWhere((i) => i.value == change.value) > -1;
+
+        if (contains) {
           return currentValue;
         }
-        return currentValue..add(change.itemId);
+
+        return currentValue..add(
+          ListItem(change.key, change.value),
+        );
       }(),
       ListViewItemRemoved() =>
-        (currentValue as List<String>)..remove(change.itemId),
-      ListViewCleared() => (currentValue as List<String>)..clear(),
+        (currentValue as List<ListItem>)
+          ..removeWhere((i) => i.key == change.key),
+      ListViewCleared() => (currentValue as List<ListItem>)..clear(),
       // Attr Value
       RefValueAttributeChanged() => change.newValue,
       // Attr Counter
