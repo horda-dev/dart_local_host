@@ -65,7 +65,7 @@ void main() {
     expect(initData.key, 'l1');
     expect(initData.name, 'test-list');
     expect(initData.value, ['a0']);
-    expect(initData.type, 'List<String>');
+    expect(initData.type, 'RefListView');
 
     // Test changes() - returns Change objects directly
     list.addItem('a1');
@@ -73,7 +73,7 @@ void main() {
 
     expect(
       change1,
-      TypeMatcher<ListViewItemAdded>().having((e) => e.itemId, 'itemId', 'a1'),
+      TypeMatcher<ListViewItemAdded>().having((e) => e.value, 'value', 'a1'),
     );
 
     // After getting changes, they should be cleared
@@ -85,8 +85,8 @@ void main() {
     expect(
       change2,
       TypeMatcher<ListViewItemRemoved>().having(
-        (e) => e.itemId,
-        'itemId',
+        (e) => e.key,
+        'key',
         'a2',
       ),
     );

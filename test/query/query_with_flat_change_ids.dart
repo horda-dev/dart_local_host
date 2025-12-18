@@ -84,11 +84,17 @@ class TestEntityViewGroup implements EntityViewGroup {
     value: 'initial2',
   );
 
+  late final listView = RefListView<TestEntity>(
+    name: 'listView',
+    value: [],
+  );
+
   @override
   void initViews(ViewGroup views) {
     views
       ..add(view1)
-      ..add(view2);
+      ..add(view2)
+      ..add(listView);
   }
 
   @override
@@ -119,28 +125,31 @@ void main() {
         ..val('view1')
         ..val('view2');
 
-      final (result, changeIDs) = await system.viewStore.queryWithFlatChangeIDs(
+      final res = await system.viewStore.queryForSubscription(
         actorId: 'actor1',
         name: 'test',
         query: qb.build(),
       );
 
       // Verify query result
-      expect(result.views['view1']?.value, 'initial1');
-      expect(result.views['view2']?.value, 'initial2');
+      expect(res.queryResult.views['view1']?.value, 'initial1');
+      expect(res.queryResult.views['view2']?.value, 'initial2');
 
       // Verify changeIDs map contains correct keys
       // Note: Initial views have empty changeIDs until first change
       final viewKey1 = ViewKey('TestEntity', 'actor1', 'view1');
       final viewKey2 = ViewKey('TestEntity', 'actor1', 'view2');
 
-      expect(changeIDs.containsKey(viewKey1), isTrue);
-      expect(changeIDs.containsKey(viewKey2), isTrue);
-      expect(changeIDs.length, 2);
+      expect(res.changeIDs.containsKey(viewKey1), isTrue);
+      expect(res.changeIDs.containsKey(viewKey2), isTrue);
+      expect(res.changeIDs.length, 2);
 
       // Verify changeIDs are strings (can be empty initially)
-      expect(changeIDs[viewKey1], isA<String>());
-      expect(changeIDs[viewKey2], isA<String>());
+      expect(res.changeIDs[viewKey1], isA<String>());
+      expect(res.changeIDs[viewKey2], isA<String>());
+
+      // Verify pages list is empty (no list views in this query)
+      expect(res.pages, isEmpty);
     });
 
     test('should collect changeIDs from nested Ref queries', () async {
@@ -161,17 +170,55 @@ void main() {
 
       final qb = QueryDefBuilder('TestEntity')..val('view1');
 
-      final (result, changeIDs) = await system.viewStore.queryWithFlatChangeIDs(
+      final res = await system.viewStore.queryForSubscription(
         actorId: 'actor1',
         name: 'test',
         query: qb.build(),
       );
 
-      expect(result.views['view1']?.value, 'initial1');
+      expect(res.queryResult.views['view1']?.value, 'initial1');
 
       final viewKey = ViewKey('TestEntity', 'actor1', 'view1');
-      expect(changeIDs.containsKey(viewKey), isTrue);
-      expect(changeIDs[viewKey], isA<String>());
+      expect(res.changeIDs.containsKey(viewKey), isTrue);
+      expect(res.changeIDs[viewKey], isA<String>());
+
+      // Verify pages list is empty (no list views in this query)
+      expect(res.pages, isEmpty);
+    });
+
+    test('should collect pages from list view queries', () async {
+      final system = HordaServerTestSystem();
+      final entity = TestEntity();
+
+      system.registerEntity<TestEntityState>(
+        entity,
+        TestEntityViewGroup(),
+      );
+
+      system.start();
+
+      // Create entity
+      system.sendEntity('TestEntity', 'actor1', 'system', TestCreateCommand());
+      await Future.delayed(Duration(milliseconds: 10));
+
+      // Query with a list view (using limit for pagination)
+      final qb = QueryDefBuilder('TestEntity')
+        ..val('view1')
+        ..list('TestEntity', 'listView', [], (qb) {}, limit: 10);
+
+      final res = await system.viewStore.queryForSubscription(
+        actorId: 'actor1',
+        name: 'test',
+        query: qb.build(),
+      );
+
+      // Verify pages list contains one page for the list view
+      expect(res.pages.length, 1);
+      expect(res.pages.first.viewKey.entityName, 'TestEntity');
+      expect(res.pages.first.viewKey.entityId, 'actor1');
+      expect(res.pages.first.viewKey.viewName, 'listView');
+      expect(res.pages.first.limit, 10);
+      expect(res.pages.first.pageId, isNotEmpty);
     });
   });
 }
