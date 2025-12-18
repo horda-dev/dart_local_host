@@ -118,7 +118,7 @@ final class HordaServerSystem {
       return EntityHost<S>(entityId, entity, defaultViewGroup, this);
     };
 
-    // Init default view values
+    // Initialize default view values
     final defaultViews = DefaultViews();
     defaultViewGroup.initViews(defaultViews);
     viewStore.initEntityViews(
