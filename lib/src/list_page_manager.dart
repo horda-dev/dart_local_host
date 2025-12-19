@@ -89,4 +89,9 @@ class ListPageManager {
       changes: pageSyncChangesOfAllPages,
     );
   }
+
+  void removeAllPages() {
+    _pages.clear();
+    _viewPages.clear();
+  }
 }

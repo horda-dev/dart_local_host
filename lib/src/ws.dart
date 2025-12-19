@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:async/async.dart';
@@ -25,6 +26,26 @@ final class WsSession {
 
   String get id => '$sessionId:$userId';
 
+  // Websocket input stream subscription (from client to server).
+  StreamSubscription<dynamic>? _inputSub;
+
+  set inputSub(StreamSubscription<dynamic>? value) {
+    _inputSub?.cancel();
+    _inputSub = value;
+  }
+
+  StreamSubscription<dynamic>? get inputSub => _inputSub;
+
+  // Websocket output stream subscription (from server to client).
+  StreamSubscription<WsMessageBox>? _outputSub;
+
+  set outputSub(StreamSubscription<WsMessageBox>? value) {
+    _outputSub?.cancel();
+    _outputSub = value;
+  }
+
+  StreamSubscription<WsMessageBox>? get outputSub => _outputSub;
+
   WsSession({
     required this.sessionId,
     required this.userId,
@@ -42,14 +63,14 @@ final class WsSession {
       ),
     );
 
-    channel.stream.listen(
+    inputSub = channel.stream.listen(
       _onMessage,
       onDone: _onDone,
       onError: _onError,
       cancelOnError: true,
     );
 
-    _outStream.stream.listen(
+    outputSub = _outStream.stream.listen(
       (box) => _send(box),
       onDone: () => logger.shout('out stream is done'),
       onError: (error) => logger.severe('out stream error $error'),
@@ -342,10 +363,33 @@ final class WsSession {
   }
 
   void _onError(dynamic error) {
+    print('$id error $error');
     logger.warning('$id error $error');
   }
 
+  /// When client closes/looses connection a "done" event will be emitted to
+  /// the websocket channel stream.
+  ///
+  /// So this is the place where all session resources should be disposed.
   void _onDone() {
+    logger.info('$id stopping...');
+
+    // Dispose all subscriptions.
+    for (final sub in _viewSubs.values) {
+      _outStream.remove(sub.stream);
+    }
+    _viewSubs.clear();
+
+    // Close the output stream.
+    _outStream.close();
+
+    // Cancel input and output websocket stream subscriptions.
+    inputSub?.cancel();
+    outputSub?.cancel();
+
+    // These should be GC'd, but remove them anyway, for consistency.
+    pageManager.removeAllPages();
+
     logger.info('$id stopped');
   }
 
@@ -368,9 +412,12 @@ final class WsSession {
     var processedEnv = env;
 
     final viewKey = ViewKey(env.entityName, env.key, env.name);
+    print('Processing: $viewKey');
 
     // Run through page manager to get page sync changes
     if (pageManager.hasPagesForView(viewKey)) {
+      print('Has page: $viewKey');
+
       processedEnv = await pageManager.handleChangeEnvelope(env);
     }
 
