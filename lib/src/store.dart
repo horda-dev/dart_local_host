@@ -1152,12 +1152,11 @@ class MemoryViewStore implements ViewStore {
     final snapshot = await viewSnapshot(entityName, entityId, viewName);
     final items = snapshot.value as List<ListItem>;
 
-    final afterIndex = items.indexWhere((i) => i.key == afterKey);
+    // To get the "right" neighbour - search in forward direction, from 0 to items.length.
+    // Do not use "lastIndexWhere" - you'll always get the last item in the list.
+    final nextIndex = items.indexWhere((i) => i.key > afterKey);
 
-    final nextIndex = afterIndex + 1;
-
-    if (nextIndex >= items.length) {
-      // No next item exists, we went out of bounds.
+    if (nextIndex == -1) {
       return null;
     }
 
@@ -1174,12 +1173,11 @@ class MemoryViewStore implements ViewStore {
     final snapshot = await viewSnapshot(entityName, entityId, viewName);
     final items = snapshot.value as List<ListItem>;
 
-    final beforeIndex = items.indexWhere((i) => i.key == beforeKey);
+    // To get the "left" neighbour - search in reverse, from items.length to 0.
+    // Do not use "firstIndexWhere" - you'll always get the first item in the list.
+    final previousIndex = items.lastIndexWhere((i) => i.key < beforeKey);
 
-    final previousIndex = beforeIndex - 1;
-
-    if (previousIndex < 0) {
-      // No previous item exists, we went out of bounds.
+    if (previousIndex == -1) {
       return null;
     }
 
