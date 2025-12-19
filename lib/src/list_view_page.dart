@@ -254,11 +254,13 @@ class ListViewPage {
   /// When a full reverse page receives an item after the window,
   /// the first item is pushed out and the new item is added at the end.
   Future<List<Change>> _handlePushout(String key, String value) async {
+    final oldLo = lo;
+
     final nextItem = await viewStore.getNextListItem(
       viewKey.entityName,
       viewKey.entityId,
       viewKey.viewName,
-      lo,
+      oldLo,
     );
 
     if (nextItem == null) {
@@ -271,7 +273,7 @@ class ListViewPage {
     return [
       ListPageItemRemoved(
         pageId: pageId,
-        key: lo,
+        key: oldLo,
       ),
       ListPageItemAdded(
         pageId: pageId,
