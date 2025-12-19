@@ -1,7 +1,6 @@
 import 'package:horda_local_host/src/list_view_page.dart';
 import 'package:horda_local_host/src/store.dart';
 import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 
 @GenerateNiceMocks([MockSpec<ViewStore>()])

@@ -103,7 +103,7 @@ void main() {
       expect(res.changeIDs[viewKey], '100');
 
       // Verify we got the first 5 items
-      final valueList = (listResult.value as Iterable<ListItem>).toList();
+      final valueList = (listResult.value).toList();
       for (var i = 0; i < 5; i++) {
         expect(valueList[i].key, keys[i]);
         expect(valueList[i].value, values[i]);
@@ -156,7 +156,7 @@ void main() {
       expect(listResult.value.length, 3);
 
       // Should get items at indices 3, 4, 5 (after index 2)
-      final valueList = (listResult.value as Iterable<ListItem>).toList();
+      final valueList = (listResult.value).toList();
       for (var i = 0; i < 3; i++) {
         expect(valueList[i].key, keys[i + 3]);
         expect(valueList[i].value, values[i + 3]);
@@ -207,7 +207,7 @@ void main() {
       final listResult = res.queryResult.views['list1'] as ListQueryResult;
       expect(listResult.value.length, 2);
 
-      final valueList = (listResult.value as Iterable<ListItem>).toList();
+      final valueList = (listResult.value).toList();
       expect(valueList[0].key, keys[8]);
       expect(valueList[0].value, values[8]);
       expect(valueList[1].key, keys[9]);
@@ -301,7 +301,7 @@ void main() {
 
       // Reverse pagination takes last N items before endBefore
       // Should get items at indices 4, 5, 6, 7, 8 (before index 9)
-      final valueList = (listResult.value as Iterable<ListItem>).toList();
+      final valueList = (listResult.value).toList();
       for (var i = 0; i < 5; i++) {
         expect(valueList[i].key, keys[i + 4]);
         expect(valueList[i].value, values[i + 4]);
@@ -344,7 +344,7 @@ void main() {
       expect(listResult.value.length, 5);
 
       // Should get last 5 items (indices 5-9)
-      final valueList = (listResult.value as Iterable<ListItem>).toList();
+      final valueList = (listResult.value).toList();
       for (var i = 0; i < 5; i++) {
         expect(valueList[i].key, keys[i + 5]);
         expect(valueList[i].value, values[i + 5]);
@@ -479,7 +479,7 @@ void main() {
 
       final listResult = res.queryResult.views['list1'] as ListQueryResult;
       expect(listResult.value.length, 1);
-      final valueList = (listResult.value as Iterable<ListItem>).toList();
+      final valueList = (listResult.value).toList();
       expect(valueList[0].key, keys[0]);
       expect(valueList[0].value, values[0]);
       expect(res.pages.first.currentSize, 1);
