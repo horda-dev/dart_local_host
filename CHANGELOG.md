@@ -1,3 +1,10 @@
+## 0.8.0
+
+- **FEAT**: add pagination with real-time sync for ref list views
+- **BREAKING**: ref list view values are now key-value pairs (ListItem) instead of plain strings
+- **CHORE**: update horda_core to 0.20.0
+- **CHORE**: update horda_server to 0.21.0
+
 ## 0.7.0
 
 - **FEAT**: support atomic query and subscribe

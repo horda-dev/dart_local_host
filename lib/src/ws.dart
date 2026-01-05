@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:async/async.dart';
@@ -5,7 +6,9 @@ import 'package:horda_server/horda_server.dart';
 import 'package:logging/logging.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import 'list_page_manager.dart';
 import 'log.dart';
+import 'store.dart';
 import 'system.dart';
 
 final class WsSession {
@@ -19,7 +22,29 @@ final class WsSession {
 
   final HordaServerSystem system;
 
+  final pageManager = ListPageManager();
+
   String get id => '$sessionId:$userId';
+
+  // Websocket input stream subscription (from client to server).
+  StreamSubscription<dynamic>? _inputSub;
+
+  set inputSub(StreamSubscription<dynamic>? value) {
+    _inputSub?.cancel();
+    _inputSub = value;
+  }
+
+  StreamSubscription<dynamic>? get inputSub => _inputSub;
+
+  // Websocket output stream subscription (from server to client).
+  StreamSubscription<WsMessageBox>? _outputSub;
+
+  set outputSub(StreamSubscription<WsMessageBox>? value) {
+    _outputSub?.cancel();
+    _outputSub = value;
+  }
+
+  StreamSubscription<WsMessageBox>? get outputSub => _outputSub;
 
   WsSession({
     required this.sessionId,
@@ -38,14 +63,14 @@ final class WsSession {
       ),
     );
 
-    channel.stream.listen(
+    inputSub = channel.stream.listen(
       _onMessage,
       onDone: _onDone,
       onError: _onError,
       cancelOnError: true,
     );
 
-    _outStream.stream.listen(
+    outputSub = _outStream.stream.listen(
       (box) => _send(box),
       onDone: () => logger.shout('out stream is done'),
       onError: (error) => logger.severe('out stream error $error'),
@@ -109,16 +134,23 @@ final class WsSession {
     logger.fine('query and subscribe on ${msg.actorId}...');
 
     try {
-      // 1. Execute query and get changeIDs
-      final (result, changeIDs) = await system.viewStore.queryWithFlatChangeIDs(
+      // Execute query and get result, changeIDs, and pages
+      final res = await system.viewStore.queryForSubscription(
         actorId: msg.actorId,
         name: '',
         query: msg.def,
       );
 
-      // 2. Subscribe to each view using changeID from flat map
-      for (final MapEntry(key: viewKey, value: changeId) in changeIDs.entries) {
+      // Add pages to page manager after successful query
+      for (final page in res.pages) {
+        pageManager.addPage(page);
+      }
+
+      // Subscribe to each view using changeID from flat map
+      for (final entry in res.changeIDs.entries) {
+        final viewKey = entry.key;
         final key = viewKey.toString();
+        final changeId = entry.value;
 
         if (_viewSubs.containsKey(key)) {
           // Unlike in explicit subscribe - here we just ignore existing subs,
@@ -134,7 +166,7 @@ final class WsSession {
               name: viewKey.viewName,
               startAt: changeId,
             )
-            .map((env) => WsMessageBox(id: 0, msg: ViewChangeWsMsg(env)));
+            .asyncMap(_processChangeEnvelope);
 
         final clientSub = _ClientSubscription(key, changeId, stream);
         _viewSubs[key] = clientSub;
@@ -145,7 +177,9 @@ final class WsSession {
 
       logger.info('query and subscribe completed for ${msg.actorId}');
 
-      return QueryResultWsMsg(result: result);
+      return QueryResultWsMsg(
+        result: res.queryResult,
+      );
     } catch (e) {
       logger.warning('query and subscribe error: $e');
       return ErrorWsMsg(
@@ -243,7 +277,7 @@ final class WsSession {
     logger.fine('subscribing to ${msg.subs.length} views...');
 
     for (final sub in msg.subs) {
-      final key = sub.subKey;
+      final key = sub.viewKey;
 
       if (_viewSubs.containsKey(key)) {
         logger.warning('duplicate subscription request for $key');
@@ -260,9 +294,7 @@ final class WsSession {
             name: sub.name,
             startAt: changeId,
           )
-          .map(
-            (env) => WsMessageBox(id: 0, msg: ViewChangeWsMsg(env)),
-          );
+          .asyncMap(_processChangeEnvelope);
 
       final clientSub = _ClientSubscription(key, changeId, stream);
 
@@ -282,29 +314,82 @@ final class WsSession {
     logger.fine('unsubscribing from ${msg.subs.length} views...');
 
     for (var sub in msg.subs) {
-      var key = sub.subKey;
-
-      if (!_viewSubs.containsKey(key)) {
-        logger.warning('no subscription found for $key');
-        continue;
+      if (sub.pageId != null) {
+        _unsubscribeFromListView(sub);
+      } else {
+        _unsubscribeFromView(sub);
       }
-
-      var activeSub = _viewSubs[key]!;
-      _outStream.remove(activeSub.stream);
-      _viewSubs.remove(key);
-
-      logger.fine('unsubscribed from $sub');
     }
 
     logger.info('unsubscribed');
     return UnsubscribeViewsResWsMsg();
   }
 
+  void _unsubscribeFromListView(ActorViewSub sub) {
+    // Remove page from page manager
+    pageManager.removePage(sub.pageId!);
+
+    // Check if any other pages exist for this view
+    final viewKey = ViewKey(sub.entityName, sub.id, sub.name);
+    final hasOtherPages = pageManager.hasPagesForView(viewKey);
+
+    if (hasOtherPages) {
+      logger.fine('removed page ${sub.pageId} from $sub (other pages remain)');
+      return;
+    }
+
+    // No pages remain, unsubscribe from view stream
+    final key = sub.viewKey; // Use viewKey (without pageId)
+    if (_viewSubs.containsKey(key)) {
+      final activeSub = _viewSubs[key]!;
+      _outStream.remove(activeSub.stream);
+      _viewSubs.remove(key);
+      logger.fine('unsubscribed from list view $sub (no pages remain)');
+    }
+  }
+
+  void _unsubscribeFromView(ActorViewSub sub) {
+    final key = sub.viewKey;
+
+    if (!_viewSubs.containsKey(key)) {
+      logger.warning('no subscription found for $key');
+      return;
+    }
+
+    final activeSub = _viewSubs[key]!;
+    _outStream.remove(activeSub.stream);
+    _viewSubs.remove(key);
+    logger.fine('unsubscribed from $sub');
+  }
+
   void _onError(dynamic error) {
+    print('$id error $error');
     logger.warning('$id error $error');
   }
 
+  /// When client closes/looses connection a "done" event will be emitted to
+  /// the websocket channel stream.
+  ///
+  /// So this is the place where all session resources should be disposed.
   void _onDone() {
+    logger.info('$id stopping...');
+
+    // Dispose all subscriptions.
+    for (final sub in _viewSubs.values) {
+      _outStream.remove(sub.stream);
+    }
+    _viewSubs.clear();
+
+    // Close the output stream.
+    _outStream.close();
+
+    // Cancel input and output websocket stream subscriptions.
+    inputSub?.cancel();
+    outputSub?.cancel();
+
+    // These should be GC'd, but remove them anyway, for consistency.
+    pageManager.removeAllPages();
+
     logger.info('$id stopped');
   }
 
@@ -316,6 +401,31 @@ final class WsSession {
 
     logger.info('$id sent box: $box');
     logger.fine('$id sent json: $json');
+  }
+
+  /// Processes a change envelope through the page manager before sending to client.
+  ///
+  /// This is the single entry point for all change envelopes flowing to the client.
+  /// It runs the envelope through the page manager to convert list-level changes
+  /// into page-specific sync changes.
+  Future<WsMessageBox> _processChangeEnvelope(ChangeEnvelop env) async {
+    var processedEnv = env;
+
+    final viewKey = ViewKey(env.entityName, env.key, env.name);
+    print('Processing: $viewKey');
+
+    // Run through page manager to get page sync changes
+    if (pageManager.hasPagesForView(viewKey)) {
+      print('Has page: $viewKey');
+
+      processedEnv = await pageManager.handleChangeEnvelope(env);
+    }
+
+    // Wrap in message box
+    return WsMessageBox(
+      id: 0,
+      msg: ViewChangeWsMsg(processedEnv),
+    );
   }
 
   final _outStream = StreamGroup<WsMessageBox>.broadcast();

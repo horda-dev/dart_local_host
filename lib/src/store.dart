@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:horda_server/horda_server.dart';
 import 'package:logging/logging.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:xid/xid.dart';
 
+import 'list_view_page.dart';
 import 'log.dart';
 import 'process.dart';
 import 'system.dart';
@@ -38,6 +40,20 @@ class ViewKey {
   @override
   int get hashCode =>
       entityName.hashCode ^ entityId.hashCode ^ viewName.hashCode;
+}
+
+/// Result of a query for atomic query and subscribe operation.
+/// Contains the query result, change IDs for all views, and list pages.
+class QueryForSubscriptionResult {
+  QueryForSubscriptionResult(this.queryResult, this.changeIDs, this.pages);
+
+  final QueryResult queryResult;
+
+  /// ChangeIDs for queried views must be used to create subscriptions.
+  final Map<ViewKey, String> changeIDs;
+
+  /// Pages must be added to the page manager to perform real-time sync of queried list view pages.
+  final List<ListViewPage> pages;
 }
 
 /// Wrapper for entity commands that includes the entity name for routing.
@@ -732,8 +748,6 @@ abstract class ViewStore {
 
   void stopProjectingChanges();
 
-  Future<void> setViewDefaults(String entityName, List<DefaultViewValue> views);
-
   Future<void> initEntityViews(
     String entityName,
     EntityId entityId,
@@ -756,15 +770,36 @@ abstract class ViewStore {
     required QueryDef query,
   });
 
-  /// Executes a query and returns both the result and a flat map of all [ViewKey] -> changeID pairs.
-  /// The map includes views at all nesting levels (from Ref and List queries).
-  Future<(QueryResult, Map<ViewKey, String>)> queryWithFlatChangeIDs({
+  /// Executes a query and returns the result, change IDs, and list pages.
+  /// The changeIDs map includes views at all nesting levels (from Ref and List queries).
+  /// The pages list includes all list view pages created during the query.
+  Future<QueryForSubscriptionResult> queryForSubscription({
     required String actorId,
     required String name,
     required QueryDef query,
   });
 
   Future<void> seed(Map<String, dynamic> seed);
+
+  /// Returns the next item in a list view after the given key.
+  /// Returns null if no item exists after the key.
+  /// Items are ordered lexicographically by their keys.
+  Future<ListItem?> getNextListItem(
+    String entityName,
+    EntityId entityId,
+    String viewName,
+    String afterKey,
+  );
+
+  /// Returns the previous item in a list view before the given key.
+  /// Returns null if no item exists before the key.
+  /// Items are ordered lexicographically by their keys.
+  Future<ListItem?> getPreviousListItem(
+    String entityName,
+    EntityId entityId,
+    String viewName,
+    String beforeKey,
+  );
 }
 
 /// Determines the count of changes to be stored before caching view value.
@@ -795,19 +830,6 @@ class MemoryViewStore implements ViewStore {
   }
 
   @override
-  Future<void> setViewDefaults(
-    String entityName,
-    List<DefaultViewValue> views,
-  ) async {
-    for (final view in views) {
-      await snapStore.set(
-        '$entityName/__default/${view.name}',
-        ViewSnapshot(view.value, ''),
-      );
-    }
-  }
-
-  @override
   Future<void> initEntityViews(
     String entityName,
     EntityId entityId,
@@ -816,9 +838,20 @@ class MemoryViewStore implements ViewStore {
     for (final view in views) {
       final snapKey = '$entityName/${view.key}/${view.name}';
 
+      dynamic snapValue = view.value;
+
+      // Create item keys for RefListView
+      if (view.type == 'RefListView') {
+        snapValue = (view.value as List<String>)
+            .map((v) => ListItem(Xid().toString(), v))
+            // Make sure that assigned value is of type List<ListItem>!
+            // Method map() returns MappedListIterable<String, ListItem>.
+            .toList();
+      }
+
       await snapStore.set(
         snapKey,
-        ViewSnapshot(view.value, ''),
+        ViewSnapshot(snapValue, ''),
       );
     }
   }
@@ -871,27 +904,44 @@ class MemoryViewStore implements ViewStore {
     required String name,
     required QueryDef query,
   }) async {
-    final res = await _visitQuery(query, actorId, null);
+    final res = await _visitQuery(
+      query,
+      actorId,
+      // We don't perform subscriptions, so pass null.
+      null,
+      // We don't perform real-time sync of list view pages, so pass null.
+      null,
+    );
     return res.build();
   }
 
   @override
-  Future<(QueryResult, Map<ViewKey, String>)> queryWithFlatChangeIDs({
+  Future<QueryForSubscriptionResult> queryForSubscription({
     required String actorId,
     required String name,
     required QueryDef query,
   }) async {
     final changeIDs = <ViewKey, String>{};
-    final res = await _visitQuery(query, actorId, changeIDs);
-    return (res.build(), changeIDs);
+    final pages = <ListViewPage>[];
+
+    final res = await _visitQuery(
+      query,
+      actorId,
+      changeIDs,
+      pages,
+    );
+
+    return QueryForSubscriptionResult(res.build(), changeIDs, pages);
   }
 
   /// Shared recursive query visitor.
   /// If [changeIDs] is provided, collects [ViewKey] -> changeID mappings for all views at all nesting levels.
+  /// If [pages] is provided, collects [ListViewPage] objects for all list views at all nesting levels.
   Future<QueryResultBuilder> _visitQuery(
     QueryDef query,
     EntityId actorId,
     Map<ViewKey, String>? changeIDs,
+    List<ListViewPage>? pages,
   ) async {
     final qr = QueryResultBuilder();
 
@@ -927,11 +977,12 @@ class MemoryViewStore implements ViewStore {
           attrs[attr] = attrSnap.toJson();
         }
 
-        // running subquery (recursively collects changeIDs if map provided)
+        // running subquery (recursively collects changeIDs and pages if provided)
         final subquery = await _visitQuery(
           view.query,
           viewSnap.value,
           changeIDs,
+          pages,
         );
         final res = RefQueryResultBuilder(
           name,
@@ -941,11 +992,35 @@ class MemoryViewStore implements ViewStore {
         );
         qr.add(res);
       } else if (view is ListQueryDef) {
+        _throwIfInvalidPaginationParams(view);
+
+        final pageItems = _getRangeFromRefListSnapshot(
+          viewSnap,
+          view.startAfter,
+          view.endBefore,
+          view.limit,
+        );
+
+        var pageId = '';
+
+        if (pages != null) {
+          final page = _createListPage(
+            ViewKey(query.entityName, actorId, name),
+            view.startAfter,
+            view.endBefore,
+            view.limit,
+            pageItems,
+          );
+          pageId = page.pageId;
+          pages.add(page);
+        }
+
         final items = <QueryResultBuilder>[];
         // maps itemId to {'attrName': attrValue}
         final allAttrs = <String, Map<String, dynamic>>{};
 
-        for (final itemId in viewSnap.value as List<EntityId>) {
+        for (final pageItem in pageItems) {
+          final itemId = pageItem.value;
           // getting attr values for item id
           final itemAttrs = <String, dynamic>{};
           for (final attrName in view.attrs) {
@@ -961,14 +1036,20 @@ class MemoryViewStore implements ViewStore {
             allAttrs[itemId] = itemAttrs;
           }
 
-          // running subquery for item id (recursively collects changeIDs if map provided)
+          // running subquery for item id (recursively collects changeIDs and pages if provided)
           items.add(
-            await _visitQuery(view.query, itemId, changeIDs),
+            await _visitQuery(view.query, itemId, changeIDs, pages),
           );
         }
 
         qr.add(
-          ListQueryResultBuilder(entry.key, allAttrs, viewSnap, items),
+          ListQueryResultBuilder(
+            entry.key,
+            allAttrs,
+            ViewSnapshot(pageItems, viewSnap.changeId),
+            items,
+            pageId,
+          ),
         );
       } else {
         throw FluirError('unknown query def ${view.runtimeType}');
@@ -1030,17 +1111,27 @@ class MemoryViewStore implements ViewStore {
       // Ref
       RefViewChanged() => change.newValue,
       // List
-      ListViewItemAdded() => (currentValue as List<String>)..add(change.itemId),
+      ListViewItemAdded() =>
+        (currentValue as List<ListItem>)..add(
+          ListItem(change.key, change.value),
+        ),
       ListViewItemAddedIfAbsent() => () {
-        currentValue as List<String>;
-        if (currentValue.contains(change.itemId)) {
+        currentValue as List<ListItem>;
+        final contains =
+            currentValue.indexWhere((i) => i.value == change.value) > -1;
+
+        if (contains) {
           return currentValue;
         }
-        return currentValue..add(change.itemId);
+
+        return currentValue..add(
+          ListItem(change.key, change.value),
+        );
       }(),
       ListViewItemRemoved() =>
-        (currentValue as List<String>)..remove(change.itemId),
-      ListViewCleared() => (currentValue as List<String>)..clear(),
+        (currentValue as List<ListItem>)
+          ..removeWhere((i) => i.key == change.key),
+      ListViewCleared() => (currentValue as List<ListItem>)..clear(),
       // Attr Value
       RefValueAttributeChanged() => change.newValue,
       // Attr Counter
@@ -1049,6 +1140,134 @@ class MemoryViewStore implements ViewStore {
       CounterAttrReset() => change.newValue,
       _ => throw UnsupportedError('Unknown change type ${change.runtimeType}'),
     };
+  }
+
+  @override
+  Future<ListItem?> getNextListItem(
+    String entityName,
+    EntityId entityId,
+    String viewName,
+    String afterKey,
+  ) async {
+    final snapshot = await viewSnapshot(entityName, entityId, viewName);
+    final items = snapshot.value as List<ListItem>;
+
+    // To get the "right" neighbour - search in forward direction, from 0 to items.length.
+    // Do not use "lastIndexWhere" - you'll always get the last item in the list.
+    final nextIndex = items.indexWhere((i) => i.key > afterKey);
+
+    if (nextIndex == -1) {
+      return null;
+    }
+
+    return items[nextIndex];
+  }
+
+  @override
+  Future<ListItem?> getPreviousListItem(
+    String entityName,
+    EntityId entityId,
+    String viewName,
+    String beforeKey,
+  ) async {
+    final snapshot = await viewSnapshot(entityName, entityId, viewName);
+    final items = snapshot.value as List<ListItem>;
+
+    // To get the "left" neighbour - search in reverse, from items.length to 0.
+    // Do not use "firstIndexWhere" - you'll always get the first item in the list.
+    final previousIndex = items.lastIndexWhere((i) => i.key < beforeKey);
+
+    if (previousIndex == -1) {
+      return null;
+    }
+
+    return items[previousIndex];
+  }
+
+  List<ListItem> _getRangeFromRefListSnapshot(
+    ViewSnapshot snap,
+    String startAfter,
+    String endBefore,
+    int limit,
+  ) {
+    final list = snap.value as List<ListItem>;
+
+    // Find start index (exclusive of startAfter)
+    int startIndex = 0;
+    if (startAfter.isNotEmpty) {
+      final afterIndex = list.indexWhere((item) => item.key == startAfter);
+      if (afterIndex != -1) {
+        startIndex = afterIndex + 1;
+      }
+    }
+
+    // Find end index (exclusive of endBefore)
+    int endIndex = list.length;
+    if (endBefore.isNotEmpty) {
+      final beforeIndex = list.indexWhere((item) => item.key == endBefore);
+      if (beforeIndex != -1) {
+        endIndex = beforeIndex;
+      }
+    }
+
+    // Get the sublist within boundaries
+    var result = list.sublist(startIndex, endIndex);
+
+    // Apply limit
+    final absLimit = limit.abs();
+    if (result.length > absLimit) {
+      if (limit > 0) {
+        // Positive limit: take first N elements
+        result = result.sublist(0, absLimit);
+      } else {
+        // Negative limit: take last N elements
+        result = result.sublist(result.length - absLimit);
+      }
+    }
+
+    return result;
+  }
+
+  ListViewPage _createListPage(
+    ViewKey viewKey,
+    String startAfter,
+    String endBefore,
+    int limit,
+    List<ListItem> pageItems,
+  ) {
+    return ListViewPage(
+      pageId: Xid().toString(),
+      startAfter: startAfter,
+      endBefore: endBefore,
+      lo: pageItems.firstOrNull?.key ?? '',
+      hi: pageItems.lastOrNull?.key ?? '',
+      limit: limit,
+      currentSize: pageItems.length,
+      viewKey: viewKey,
+      viewStore: this,
+    );
+  }
+
+  void _throwIfInvalidPaginationParams(ListQueryDef def) {
+    if (def.limit == 0) {
+      throw ArgumentError.value(
+        def.limit,
+        'limit',
+        'list view limit can not be 0',
+      );
+    }
+
+    if (def.limit > 0 && def.endBefore.isNotEmpty) {
+      throw ArgumentError(
+        'endBefore can not be used with forward pagination',
+      );
+    }
+
+    if (def.limit < 0 && def.startAfter.isNotEmpty) {
+      throw ArgumentError(
+        'startAfter can not be used with reverse pagination',
+      );
+    }
   }
 
   StreamSubscription<ChangeEnvelop>? _viewUpdaterSub;
@@ -1111,18 +1330,12 @@ class DefaultViews implements ViewGroup {
   @override
   void add(View view) {
     views.add(view);
-    defaultValues.add(
-      DefaultViewValue(view.name, view.defaultValue),
+    view.entityId = '__default';
+    defaultValues.addAll(
+      view.initValues(),
     );
   }
 
   final views = <View>[];
-  final defaultValues = <DefaultViewValue>[];
-}
-
-class DefaultViewValue {
-  const DefaultViewValue(this.name, this.value);
-
-  final String name;
-  final dynamic value;
+  final defaultValues = <InitViewData>[];
 }
