@@ -101,7 +101,7 @@ class ListViewPage {
     }
 
     // Scenario 3: Normal add (inside window or after window with space)
-    adjustItemAdded(key);
+    _adjustItemAdded(key);
     return [
       ListPageItemAdded(
         pageId: pageId,
@@ -165,10 +165,10 @@ class ListViewPage {
           value: backfillItem.value,
         ),
       );
-      adjustItemRemovedWithBackfill(backfillItem.key);
+      _adjustItemRemovedWithBackfill(backfillItem.key);
     } else {
       // No backfill available
-      adjustItemRemovedWithoutBackfill();
+      _adjustItemRemovedWithoutBackfill();
     }
 
     return changes;
@@ -178,7 +178,7 @@ class ListViewPage {
   ///
   /// Always returns [ListPageCleared] since clearing affects all pages.
   List<Change> handleCleared(ListViewCleared change) {
-    adjustCleared();
+    _adjustCleared();
     return [
       ListPageCleared(
         pageId: pageId,
@@ -189,7 +189,7 @@ class ListViewPage {
   // State adjustment methods (internal helpers)
 
   /// Adjusts page state when an item is added.
-  void adjustItemAdded(String key) {
+  void _adjustItemAdded(String key) {
     // Inside window, can extend
     if (isInsideWindow(key) && canExtendWindow()) {
       currentSize++;
@@ -209,19 +209,19 @@ class ListViewPage {
   }
 
   /// Adjusts page boundaries after a push-out (reverse page sliding forward).
-  void adjustPushout(String newLo, String newHi) {
+  void _adjustPushout(String newLo, String newHi) {
     lo = newLo;
     hi = newHi;
     // currentSize unchanged (still full)
   }
 
   /// Adjusts page state when an item is removed without backfill.
-  void adjustItemRemovedWithoutBackfill() {
+  void _adjustItemRemovedWithoutBackfill() {
     if (!isEmpty) currentSize--;
   }
 
   /// Adjusts page state when an item is removed with backfill.
-  void adjustItemRemovedWithBackfill(String backfillKey) {
+  void _adjustItemRemovedWithBackfill(String backfillKey) {
     if (isReverse) {
       lo = backfillKey;
     } else {
@@ -231,7 +231,7 @@ class ListViewPage {
   }
 
   /// Adjusts page state when the list is cleared.
-  void adjustCleared() {
+  void _adjustCleared() {
     currentSize = 0;
     // lo/hi preserved to maintain window position
   }
@@ -268,7 +268,7 @@ class ListViewPage {
       return [];
     }
 
-    adjustPushout(nextItem.key, key);
+    _adjustPushout(nextItem.key, key);
 
     return [
       ListPageItemRemoved(

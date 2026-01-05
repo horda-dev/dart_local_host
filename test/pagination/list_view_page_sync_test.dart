@@ -399,4 +399,132 @@ void main() {
       expect(changes, isEmpty);
     });
   });
+
+  group('Real-time sync - Clear scenarios', () {
+    test(
+      'list cleared resets currentSize to zero and preserves boundaries',
+      () {
+        final mockViewStore = MockViewStore();
+        final viewKey = ViewKey('TestEntity', 'actor1', 'list1');
+
+        final page = ListViewPage(
+          pageId: 'page1',
+          startAfter: '',
+          endBefore: '',
+          lo: 'key2',
+          hi: 'key9',
+          limit: 10,
+          currentSize: 5,
+          viewKey: viewKey,
+          viewStore: mockViewStore,
+        );
+
+        final change = ListViewCleared();
+        final changes = page.handleCleared(change);
+
+        // Should return single ListPageCleared change
+        expect(changes.length, 1);
+        expect(changes[0], isA<ListPageCleared>());
+        expect((changes[0] as ListPageCleared).pageId, 'page1');
+
+        // Verify page state: currentSize reset, boundaries preserved
+        expect(page.currentSize, 0);
+        expect(page.lo, 'key2');
+        expect(page.hi, 'key9');
+      },
+    );
+
+    test('list cleared on empty page returns cleared change', () {
+      final mockViewStore = MockViewStore();
+      final viewKey = ViewKey('TestEntity', 'actor1', 'list1');
+
+      final page = ListViewPage(
+        pageId: 'page1',
+        startAfter: '',
+        endBefore: '',
+        lo: 'key2',
+        hi: 'key9',
+        limit: 10,
+        currentSize: 0,
+        viewKey: viewKey,
+        viewStore: mockViewStore,
+      );
+
+      final change = ListViewCleared();
+      final changes = page.handleCleared(change);
+
+      // Should return ListPageCleared change
+      expect(changes.length, 1);
+      expect(changes[0], isA<ListPageCleared>());
+      expect((changes[0] as ListPageCleared).pageId, 'page1');
+
+      // Verify page state unchanged
+      expect(page.currentSize, 0);
+      expect(page.lo, 'key2');
+      expect(page.hi, 'key9');
+    });
+  });
+
+  group('Real-time sync - AddIfAbsent scenarios', () {
+    test('item added if absent behaves like normal add', () async {
+      final mockViewStore = MockViewStore();
+      final viewKey = ViewKey('TestEntity', 'actor1', 'list1');
+
+      final page = ListViewPage(
+        pageId: 'page1',
+        startAfter: '',
+        endBefore: '',
+        lo: 'key2',
+        hi: 'key5',
+        limit: 10,
+        currentSize: 3,
+        viewKey: viewKey,
+        viewStore: mockViewStore,
+      );
+
+      final change = ListViewItemAddedIfAbsent('key3', 'actor3');
+      final changes = await page.handleItemAddedIfAbsent(change);
+
+      // Should return single ListPageItemAdded change
+      expect(changes.length, 1);
+      expect(changes[0], isA<ListPageItemAdded>());
+      expect((changes[0] as ListPageItemAdded).pageId, 'page1');
+      expect((changes[0] as ListPageItemAdded).key, 'key3');
+      expect((changes[0] as ListPageItemAdded).value, 'actor3');
+
+      // Verify page state updated
+      expect(page.currentSize, 4);
+      expect(page.lo, 'key2');
+      expect(page.hi, 'key5');
+    });
+
+    test('item added if absent on full page behaves like normal add', () async {
+      final mockViewStore = MockViewStore();
+      final viewKey = ViewKey('TestEntity', 'actor1', 'list1');
+
+      final page = ListViewPage(
+        pageId: 'page1',
+        startAfter: '',
+        endBefore: '',
+        lo: 'key2',
+        hi: 'key6',
+        limit: 5,
+        currentSize: 5,
+        viewKey: viewKey,
+        viewStore: mockViewStore,
+      );
+
+      // Add item after the window on a full page
+      final change = ListViewItemAddedIfAbsent('key9', 'actor9');
+      final changes = await page.handleItemAddedIfAbsent(change);
+
+      // Should return empty (full forward page ignores items after window)
+      expect(changes, isEmpty);
+
+      // Verify page state unchanged
+      expect(page.currentSize, 5);
+      expect(page.lo, 'key2');
+      expect(page.hi, 'key6');
+    });
+  });
 }
