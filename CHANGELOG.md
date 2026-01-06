@@ -1,3 +1,7 @@
+## 0.8.1
+
+- **FIX**: run business processes on entity events
+
 ## 0.8.0
 
 - **FEAT**: add pagination with real-time sync for ref list views
