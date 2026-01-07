@@ -412,12 +412,9 @@ final class WsSession {
     var processedEnv = env;
 
     final viewKey = ViewKey(env.entityName, env.key, env.name);
-    print('Processing: $viewKey');
 
     // Run through page manager to get page sync changes
     if (pageManager.hasPagesForView(viewKey)) {
-      print('Has page: $viewKey');
-
       processedEnv = await pageManager.handleChangeEnvelope(env);
     }
 
