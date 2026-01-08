@@ -4,7 +4,6 @@ import 'package:async/async.dart';
 import 'package:horda_server/horda_server.dart';
 import 'package:logging/logging.dart';
 
-import 'cron.dart';
 import 'system.dart';
 
 class ProcessGroupHost {
@@ -200,13 +199,12 @@ class _ProcessContext implements ProcessContext {
     required Duration after,
     required RemoteCommand cmd,
   }) async {
-    final scheduleCmd = Schedule.entity(name, id, clock.add(after), cmd);
-    final event = await callService<Scheduled>(
-      name: 'CronService',
-      cmd: scheduleCmd,
-      fac: Scheduled.fromJson,
+    return host._system.cmdScheduler.scheduleEntity(
+      entityName: name,
+      to: id,
+      at: clock.add(after),
+      cmd: cmd,
     );
-    return event.cancelId;
   }
 
   @override
@@ -214,10 +212,7 @@ class _ProcessContext implements ProcessContext {
     required String name,
     required String scheduleId,
   }) async {
-    sendService(
-      name: 'CronService',
-      cmd: Cancel(scheduleId),
-    );
+    host._system.cmdScheduler.cancel(scheduleId);
   }
 
   @override
@@ -262,13 +257,11 @@ class _ProcessContext implements ProcessContext {
     required Duration after,
     required RemoteCommand cmd,
   }) async {
-    final scheduleCmd = Schedule.service(name, clock.add(after), cmd);
-    final event = await callService<Scheduled>(
-      name: 'CronService',
-      cmd: scheduleCmd,
-      fac: Scheduled.fromJson,
+    return host._system.cmdScheduler.scheduleService(
+      serviceName: name,
+      at: clock.add(after),
+      cmd: cmd,
     );
-    return event.cancelId;
   }
 
   @override
@@ -276,10 +269,7 @@ class _ProcessContext implements ProcessContext {
     required String name,
     required String scheduleId,
   }) async {
-    sendService(
-      name: 'CronService',
-      cmd: Cancel(scheduleId),
-    );
+    host._system.cmdScheduler.cancel(scheduleId);
   }
 }
 

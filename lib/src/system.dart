@@ -6,7 +6,7 @@ import 'package:quiver/async.dart';
 import 'package:stack_trace/stack_trace.dart';
 
 import 'change_id.dart';
-import 'cron.dart';
+import 'command_scheduler.dart';
 import 'entity.dart';
 import 'http.dart';
 import 'process.dart';
@@ -43,22 +43,23 @@ final class HordaServerSystem {
 
   final changeIdTracker = ChangeIdTracker();
 
+  late final CommandScheduler cmdScheduler;
+
   late final Logger logger;
 
   Future<void> start() async {
     logger.fine('starting server system...');
 
     kRegisterFluirMessage();
-    kRegisterCronMessages();
 
     await keyValueStore.start();
 
     viewStore.startProjectingChanges(messageStore.allChanges);
 
-    registerService(CronService(this));
+    cmdScheduler = CommandScheduler(this);
 
     _tickerSub = _ticker.listen(
-      (now) => sendService('CronService', 'system', Tick(now)),
+      (now) => cmdScheduler.tick(now),
     );
 
     httpServer.start();
