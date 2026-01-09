@@ -24,7 +24,6 @@ final class HordaServerSystem {
     keyValueStore = MemKeyValueStore();
 
     viewStore = MemoryViewStore(
-      messageStore,
       keyValueStore,
     );
 

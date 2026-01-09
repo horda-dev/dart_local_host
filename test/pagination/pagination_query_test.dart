@@ -34,9 +34,8 @@ void main() {
 
   group('Pagination query - Empty list', () {
     test('query empty list returns empty result', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       // No seeding - empty list
       when(snapStore.containsKey('TestEntity/actor1/list1')).thenAnswer(
@@ -68,9 +67,8 @@ void main() {
 
   group('Pagination query - Forward pagination', () {
     test('first page with no startAfter returns first N items', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       // Generate 10 items with sorted XIDs
       final keys = List.generate(10, (_) => Xid().toString());
@@ -118,9 +116,8 @@ void main() {
     });
 
     test('middle page with startAfter returns correct range', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       final keys = List.generate(10, (_) => Xid().toString());
       keys.sort();
@@ -168,9 +165,8 @@ void main() {
     });
 
     test('last page returns fewer items than limit', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       final keys = List.generate(10, (_) => Xid().toString());
       keys.sort();
@@ -218,9 +214,8 @@ void main() {
     });
 
     test('exact page boundary returns exact number of items', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       final keys = List.generate(10, (_) => Xid().toString());
       keys.sort();
@@ -262,9 +257,8 @@ void main() {
 
   group('Pagination query - Reverse pagination', () {
     test('reverse pagination with endBefore returns last N items', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       final keys = List.generate(10, (_) => Xid().toString());
       keys.sort();
@@ -313,9 +307,8 @@ void main() {
     });
 
     test('reverse pagination without endBefore gets last N items', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       final keys = List.generate(10, (_) => Xid().toString());
       keys.sort();
@@ -357,9 +350,8 @@ void main() {
 
   group('Pagination query - Validation errors', () {
     test('limit=0 throws ArgumentError', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       seedListView(snapStore, 'TestEntity', 'actor1', 'list1', [], [], '0');
 
@@ -383,9 +375,8 @@ void main() {
     });
 
     test('endBefore with forward pagination throws ArgumentError', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       seedListView(snapStore, 'TestEntity', 'actor1', 'list1', [], [], '0');
 
@@ -416,9 +407,8 @@ void main() {
     });
 
     test('startAfter with reverse pagination throws ArgumentError', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       seedListView(snapStore, 'TestEntity', 'actor1', 'list1', [], [], '0');
 
@@ -451,9 +441,8 @@ void main() {
 
   group('Pagination query - Boundary conditions', () {
     test('single item list with limit=1 returns that item', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       final keys = [Xid().toString()];
       final values = ['item0'];
@@ -487,9 +476,8 @@ void main() {
     });
 
     test('limit larger than total items returns all items', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       final keys = List.generate(3, (_) => Xid().toString());
       keys.sort();
@@ -522,9 +510,8 @@ void main() {
     });
 
     test('startAfter pointing to last item returns empty result', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       final keys = List.generate(5, (_) => Xid().toString());
       keys.sort();

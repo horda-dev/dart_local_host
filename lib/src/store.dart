@@ -809,12 +809,9 @@ const kViewCacheByCountCondition = 10;
 const kViewCacheByTimeCondition = Duration(seconds: 2);
 
 class MemoryViewStore implements ViewStore {
-  MemoryViewStore(this.messageStore, this.snapStore)
-    : logger = Logger('Horda.ViewStore');
+  MemoryViewStore(this.snapStore) : logger = Logger('Horda.ViewStore');
 
   final Logger logger;
-
-  final MessageStore messageStore;
 
   final KeyValueStore snapStore;
 
