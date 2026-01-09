@@ -104,8 +104,7 @@ class TriggerEntityDynamicWrongTypeEvent extends RemoteEvent {
   TriggerEntityDynamicWrongTypeEvent();
   factory TriggerEntityDynamicWrongTypeEvent.fromJson(
     Map<String, dynamic> json,
-  ) =>
-      TriggerEntityDynamicWrongTypeEvent();
+  ) => TriggerEntityDynamicWrongTypeEvent();
 
   @override
   Map<String, dynamic> toJson() => {};
@@ -115,8 +114,7 @@ class TriggerServiceDynamicWrongTypeEvent extends RemoteEvent {
   TriggerServiceDynamicWrongTypeEvent();
   factory TriggerServiceDynamicWrongTypeEvent.fromJson(
     Map<String, dynamic> json,
-  ) =>
-      TriggerServiceDynamicWrongTypeEvent();
+  ) => TriggerServiceDynamicWrongTypeEvent();
 
   @override
   Map<String, dynamic> toJson() => {};
@@ -287,7 +285,9 @@ class TestProcessGroup extends ProcessGroup {
         cmd: ThrowCommand(),
         fac: EmptyEvent.fromJson,
       );
-      return ProcessResult.error('Expected callService to throw but it did not');
+      return ProcessResult.error(
+        'Expected callService to throw but it did not',
+      );
     } catch (e) {
       serviceThrowError = e as Error;
       return ProcessResult.ok('Caught error as expected');
@@ -440,30 +440,32 @@ void main() {
       );
     });
 
-    test('callEntity should throw when handler returns wrong event type',
-        () async {
-      final result = await system.dispatchEvent(
-        'system',
-        TriggerEntityWrongTypeEvent(),
-      );
+    test(
+      'callEntity should throw when handler returns wrong event type',
+      () async {
+        final result = await system.dispatchEvent(
+          'system',
+          TriggerEntityWrongTypeEvent(),
+        );
 
-      expect(result.isError, false);
-      expect(result.value, 'Caught type mismatch error as expected');
-      expect(process.entityWrongTypeError, isNotNull);
-      expect(process.entityWrongTypeError, isA<FluirError>());
-      expect(
-        process.entityWrongTypeError.toString(),
-        contains('TestEntity'),
-      );
-      expect(
-        process.entityWrongTypeError.toString(),
-        contains('returned unexpected event type AlternativeEvent'),
-      );
-      expect(
-        process.entityWrongTypeError.toString(),
-        contains('expected: EmptyEvent'),
-      );
-    });
+        expect(result.isError, false);
+        expect(result.value, 'Caught type mismatch error as expected');
+        expect(process.entityWrongTypeError, isNotNull);
+        expect(process.entityWrongTypeError, isA<FluirError>());
+        expect(
+          process.entityWrongTypeError.toString(),
+          contains('TestEntity'),
+        );
+        expect(
+          process.entityWrongTypeError.toString(),
+          contains('returned unexpected event type AlternativeEvent'),
+        );
+        expect(
+          process.entityWrongTypeError.toString(),
+          contains('expected: EmptyEvent'),
+        );
+      },
+    );
 
     test('callService should throw when service handler throws', () async {
       final result = await system.dispatchEvent(
@@ -489,80 +491,86 @@ void main() {
       );
     });
 
-    test('callService should throw when handler returns wrong event type',
-        () async {
-      final result = await system.dispatchEvent(
-        'system',
-        TriggerServiceWrongTypeEvent(),
-      );
+    test(
+      'callService should throw when handler returns wrong event type',
+      () async {
+        final result = await system.dispatchEvent(
+          'system',
+          TriggerServiceWrongTypeEvent(),
+        );
 
-      expect(result.isError, false);
-      expect(result.value, 'Caught type mismatch error as expected');
-      expect(process.serviceWrongTypeError, isNotNull);
-      expect(process.serviceWrongTypeError, isA<FluirError>());
-      expect(
-        process.serviceWrongTypeError.toString(),
-        contains('TestService'),
-      );
-      expect(
-        process.serviceWrongTypeError.toString(),
-        contains('returned unexpected event type AlternativeEvent'),
-      );
-      expect(
-        process.serviceWrongTypeError.toString(),
-        contains('expected: EmptyEvent'),
-      );
-    });
+        expect(result.isError, false);
+        expect(result.value, 'Caught type mismatch error as expected');
+        expect(process.serviceWrongTypeError, isNotNull);
+        expect(process.serviceWrongTypeError, isA<FluirError>());
+        expect(
+          process.serviceWrongTypeError.toString(),
+          contains('TestService'),
+        );
+        expect(
+          process.serviceWrongTypeError.toString(),
+          contains('returned unexpected event type AlternativeEvent'),
+        );
+        expect(
+          process.serviceWrongTypeError.toString(),
+          contains('expected: EmptyEvent'),
+        );
+      },
+    );
 
-    test('callEntityDynamic should throw when handler returns wrong event type',
-        () async {
-      final result = await system.dispatchEvent(
-        'system',
-        TriggerEntityDynamicWrongTypeEvent(),
-      );
+    test(
+      'callEntityDynamic should throw when handler returns wrong event type',
+      () async {
+        final result = await system.dispatchEvent(
+          'system',
+          TriggerEntityDynamicWrongTypeEvent(),
+        );
 
-      expect(result.isError, false);
-      expect(result.value, 'Caught type mismatch error as expected');
-      expect(process.entityDynamicWrongTypeError, isNotNull);
-      expect(process.entityDynamicWrongTypeError, isA<FluirError>());
-      expect(
-        process.entityDynamicWrongTypeError.toString(),
-        contains('TestEntity'),
-      );
-      expect(
-        process.entityDynamicWrongTypeError.toString(),
-        contains('returned unexpected event type AlternativeEvent'),
-      );
-      expect(
-        process.entityDynamicWrongTypeError.toString(),
-        contains('expected one of: [EmptyEvent]'),
-      );
-    });
+        expect(result.isError, false);
+        expect(result.value, 'Caught type mismatch error as expected');
+        expect(process.entityDynamicWrongTypeError, isNotNull);
+        expect(process.entityDynamicWrongTypeError, isA<FluirError>());
+        expect(
+          process.entityDynamicWrongTypeError.toString(),
+          contains('TestEntity'),
+        );
+        expect(
+          process.entityDynamicWrongTypeError.toString(),
+          contains('returned unexpected event type AlternativeEvent'),
+        );
+        expect(
+          process.entityDynamicWrongTypeError.toString(),
+          contains('expected one of: [EmptyEvent]'),
+        );
+      },
+    );
 
-    test('callServiceDynamic should throw when handler returns wrong event type',
-        () async {
-      final result = await system.dispatchEvent(
-        'system',
-        TriggerServiceDynamicWrongTypeEvent(),
-      );
+    test(
+      'callServiceDynamic should throw when handler returns wrong event type',
+      () async {
+        final result = await system.dispatchEvent(
+          'system',
+          TriggerServiceDynamicWrongTypeEvent(),
+        );
 
-      expect(result.isError, false);
-      expect(result.value, 'Caught type mismatch error as expected');
-      expect(process.serviceDynamicWrongTypeError, isNotNull);
-      expect(process.serviceDynamicWrongTypeError, isA<FluirError>());
-      expect(
-        process.serviceDynamicWrongTypeError.toString(),
-        contains('TestService'),
-      );
-      expect(
-        process.serviceDynamicWrongTypeError.toString(),
-        contains('returned unexpected event type AlternativeEvent'),
-      );
-      expect(
-        process.serviceDynamicWrongTypeError.toString(),
-        contains('expected one of: [EmptyEvent]'),
-      );
-    });
+        expect(result.isError, false);
+        expect(result.value, 'Caught type mismatch error as expected');
+        expect(process.serviceDynamicWrongTypeError, isNotNull);
+        expect(process.serviceDynamicWrongTypeError, isA<FluirError>());
+        expect(
+          process.serviceDynamicWrongTypeError.toString(),
+          contains('TestService'),
+        );
+        expect(
+          process.serviceDynamicWrongTypeError.toString(),
+          contains('returned unexpected event type AlternativeEvent'),
+        );
+        expect(
+          process.serviceDynamicWrongTypeError.toString(),
+          contains('expected one of: [EmptyEvent]'),
+        );
+      },
+    );
 
     test(
       'callEntity should throw even when expected event has no fields (edge case)',
