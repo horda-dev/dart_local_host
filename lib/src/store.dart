@@ -261,6 +261,23 @@ class MemoryMessageStore implements MessageStore {
       entityId: entityId,
       commandId: cmdId,
     ).timeout(const Duration(milliseconds: 500)).first;
+
+    // Check if the handler threw an error
+    if (eventEnv.type == 'FluirErrorEvent') {
+      final errorMsg = eventEnv.event['msg'] as String;
+      throw FluirError(
+        'Entity $entityName/$entityId handler error: $errorMsg',
+      );
+    }
+
+    // Check if the returned event type matches the expected type
+    final expectedType = E.toString();
+    if (eventEnv.type != expectedType) {
+      throw FluirError(
+        'Entity $entityName/$entityId returned unexpected event type ${eventEnv.type}, expected: $expectedType',
+      );
+    }
+
     return fac(eventEnv.event);
   }
 
@@ -285,10 +302,18 @@ class MemoryMessageStore implements MessageStore {
       commandId: cmdId,
     ).timeout(const Duration(milliseconds: 500)).first;
 
+    // Check if the handler threw an error
+    if (eventEnv.type == 'FluirErrorEvent') {
+      final errorMsg = eventEnv.event['msg'] as String;
+      throw FluirError(
+        'Entity $entityName/$entityId handler error: $errorMsg',
+      );
+    }
+
     final factory = factoryMap[eventEnv.type];
     if (factory == null) {
       throw FluirError(
-        'No factory registered for event type ${eventEnv.type} for entity $entityName/$entityId',
+        'Entity $entityName/$entityId returned unexpected event type ${eventEnv.type}, expected one of: ${factoryMap.keys.toList()}',
       );
     }
 
@@ -383,6 +408,23 @@ class MemoryMessageStore implements MessageStore {
       serviceName: serviceName,
       commandId: cmdId,
     ).timeout(const Duration(seconds: 10)).first;
+
+    // Check if the handler threw an error
+    if (eventEnv.type == 'FluirErrorEvent') {
+      final errorMsg = eventEnv.event['msg'] as String;
+      throw FluirError(
+        'Service $serviceName handler error: $errorMsg',
+      );
+    }
+
+    // Check if the returned event type matches the expected type
+    final expectedType = E.toString();
+    if (eventEnv.type != expectedType) {
+      throw FluirError(
+        'Service $serviceName returned unexpected event type ${eventEnv.type}, expected: $expectedType',
+      );
+    }
+
     return fac(eventEnv.event);
   }
 
@@ -406,10 +448,18 @@ class MemoryMessageStore implements MessageStore {
       commandId: cmdId,
     ).timeout(const Duration(seconds: 10)).first;
 
+    // Check if the handler threw an error
+    if (eventEnv.type == 'FluirErrorEvent') {
+      final errorMsg = eventEnv.event['msg'] as String;
+      throw FluirError(
+        'Service $serviceName handler error: $errorMsg',
+      );
+    }
+
     final factory = factoryMap[eventEnv.type];
     if (factory == null) {
       throw FluirError(
-        'No factory registered for event type ${eventEnv.type} for service $serviceName',
+        'Service $serviceName returned unexpected event type ${eventEnv.type}, expected one of: ${factoryMap.keys.toList()}',
       );
     }
 
