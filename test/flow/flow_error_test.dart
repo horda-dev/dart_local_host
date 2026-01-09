@@ -120,6 +120,16 @@ class TriggerServiceDynamicWrongTypeEvent extends RemoteEvent {
   Map<String, dynamic> toJson() => {};
 }
 
+class TriggerProcessUnhandledExceptionEvent extends RemoteEvent {
+  TriggerProcessUnhandledExceptionEvent();
+  factory TriggerProcessUnhandledExceptionEvent.fromJson(
+    Map<String, dynamic> json,
+  ) => TriggerProcessUnhandledExceptionEvent();
+
+  @override
+  Map<String, dynamic> toJson() => {};
+}
+
 // ============================================================================
 // Entity
 // ============================================================================
@@ -352,6 +362,16 @@ class TestProcessGroup extends ProcessGroup {
     }
   }
 
+  Future<ProcessResult> handleProcessUnhandledException(
+    TriggerProcessUnhandledExceptionEvent event,
+    ProcessContext context,
+  ) async {
+    // This handler throws an unhandled exception directly
+    throw Exception(
+      'Process handler intentionally threw an unhandled exception',
+    );
+  }
+
   @override
   void registerFuncs(ProcessFuncs funcs) {
     funcs
@@ -378,6 +398,10 @@ class TestProcessGroup extends ProcessGroup {
       ..add<TriggerServiceDynamicWrongTypeEvent>(
         handleServiceDynamicWrongType,
         TriggerServiceDynamicWrongTypeEvent.fromJson,
+      )
+      ..add<TriggerProcessUnhandledExceptionEvent>(
+        handleProcessUnhandledException,
+        TriggerProcessUnhandledExceptionEvent.fromJson,
       );
   }
 }
@@ -590,6 +614,24 @@ void main() {
         expect(
           process.entityThrowError.toString(),
           contains('handler error'),
+        );
+      },
+    );
+
+    test(
+      'unhandled exception in process handler should be caught and returned as ProcessResult.error',
+      () async {
+        final result = await system.dispatchEvent(
+          'system',
+          TriggerProcessUnhandledExceptionEvent(),
+        );
+
+        expect(result.isError, true);
+        expect(
+          result.value,
+          contains(
+            'Process handler intentionally threw an unhandled exception',
+          ),
         );
       },
     );

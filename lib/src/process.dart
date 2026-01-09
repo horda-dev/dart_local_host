@@ -51,7 +51,15 @@ class ProcessGroupHost {
       return;
     }
 
-    final result = await _funcs.handle(env);
+    ProcessResult result;
+    try {
+      result = await _funcs.handle(env);
+    } catch (e) {
+      logger.warning(
+        'caught error while event ${env.eventId} from ${env.actorId} was running on ${env.type}: ${e.runtimeType}, $e',
+      );
+      result = ProcessResult.error(e.toString());
+    }
 
     _system.publishProcessResult(
       // When dispatching, dispatchId is set as eventId in the EventEnvelope, so dispatchId == eventId.
