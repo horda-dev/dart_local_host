@@ -1067,30 +1067,50 @@ class MemoryViewStore implements ViewStore {
 
     logger.fine('View store got a change from stream, with key: $snapKey');
 
-    final currentSnap = await snapStore.get(snapKey);
+    ViewSnapshot? currentSnap;
+    // Is null if no snapshot is found.
+    dynamic currentValue;
+
+    if (isAttrChange) {
+      // Here we do not attempt fetching default value, because attributes don't have them.
+      // If no snap is found, currentValue is null, attribute change projection must handle this.
+      try {
+        currentSnap = await snapStore.get(snapKey);
+        currentValue = currentSnap.value;
+      } on FluirError catch (_) {
+        logger.fine(
+          'Attribute snapshot not found, attribute will be initialized',
+        );
+      }
+    } else {
+      // Here we either fetch the snapshot from the store or fetch the default value.
+      // currentValue can not be null when projectig view changes.
+      currentSnap = await viewSnapshot(env.entityName, env.key, env.name);
+      currentValue = currentSnap.value;
+    }
 
     logger.finer(
-      'Projecting ${env.sourceId}, old ver: ${currentSnap.changeId}, env ver: ${env.changeId}, count: ${env.changes.length}',
+      'Projecting ${env.sourceId}, old ver: ${currentSnap?.changeId}, env ver: ${env.changeId}, count: ${env.changes.length}',
     );
 
     final newSnap = env.isOverwriting
-        ? _projectLast(currentSnap, env)
-        : _projectAll(currentSnap, env);
+        ? _projectLast(currentValue, env)
+        : _projectAll(currentValue, env);
 
     await snapStore.set(snapKey, newSnap);
   }
 
-  ViewSnapshot _projectLast(ViewSnapshot currentSnapshot, ChangeEnvelop env) {
+  ViewSnapshot _projectLast(dynamic currentValue, ChangeEnvelop env) {
     final lastChange = env.changes.last;
 
-    final newValue = _getProjectedValue(currentSnapshot.value, lastChange);
+    final newValue = _getProjectedValue(currentValue, lastChange);
     final newChangeId = env.changeId;
 
     return ViewSnapshot(newValue, newChangeId);
   }
 
-  ViewSnapshot _projectAll(ViewSnapshot currentSnapshot, ChangeEnvelop env) {
-    var newValue = currentSnapshot.value;
+  ViewSnapshot _projectAll(dynamic currentValue, ChangeEnvelop env) {
+    var newValue = currentValue;
     final newChangeId = env.changeId;
 
     for (final change in env.changes) {
