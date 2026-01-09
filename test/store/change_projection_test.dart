@@ -469,181 +469,191 @@ void main() {
     });
 
     group('Value attribute changes', () {
-      test('RefValueAttributeChanged projects correctly with existing value',
-          () async {
-        final cid = CompositeId('actor1', 'actor2').id;
-        await snapStore.set(
-          '$cid/attr1',
-          ViewSnapshot('oldValue', '0'),
-        );
+      test(
+        'RefValueAttributeChanged projects correctly with existing value',
+        () async {
+          final cid = CompositeId('actor1', 'actor2').id;
+          await snapStore.set(
+            '$cid/attr1',
+            ViewSnapshot('oldValue', '0'),
+          );
 
-        final change = ChangeEnvelop(
-          entityName: '', // Empty for attributes
-          key: cid,
-          name: 'attr1',
-          changeId: '1',
-          changes: [
-            RefValueAttributeChanged(
-              attrId: 'actor2',
-              attrName: 'attr1',
-              newValue: 'newValue',
-            ),
-          ],
-        );
+          final change = ChangeEnvelop(
+            entityName: '', // Empty for attributes
+            key: cid,
+            name: 'attr1',
+            changeId: '1',
+            changes: [
+              RefValueAttributeChanged(
+                attrId: 'actor2',
+                attrName: 'attr1',
+                newValue: 'newValue',
+              ),
+            ],
+          );
 
-        changeStream.add(change);
-        await Future.delayed(Duration(milliseconds: 10));
+          changeStream.add(change);
+          await Future.delayed(Duration(milliseconds: 10));
 
-        final snapshot = await viewStore.attributeSnapshot(
-          'actor1',
-          'actor2',
-          'attr1',
-        );
-        expect(snapshot.value, 'newValue');
-        expect(snapshot.changeId, '1');
-      });
+          final snapshot = await viewStore.attributeSnapshot(
+            'actor1',
+            'actor2',
+            'attr1',
+          );
+          expect(snapshot.value, 'newValue');
+          expect(snapshot.changeId, '1');
+        },
+      );
 
-      test('RefValueAttributeChanged projects correctly with null initial value',
-          () async {
-        final cid = CompositeId('actor1', 'actor2').id;
-        // Don't set initial snapshot - attribute doesn't exist yet
+      test(
+        'RefValueAttributeChanged projects correctly with null initial value',
+        () async {
+          final cid = CompositeId('actor1', 'actor2').id;
+          // Don't set initial snapshot - attribute doesn't exist yet
 
-        final change = ChangeEnvelop(
-          entityName: '', // Empty for attributes
-          key: cid,
-          name: 'attr1',
-          changeId: '1',
-          changes: [
-            RefValueAttributeChanged(
-              attrId: 'actor2',
-              attrName: 'attr1',
-              newValue: 'firstValue',
-            ),
-          ],
-        );
+          final change = ChangeEnvelop(
+            entityName: '', // Empty for attributes
+            key: cid,
+            name: 'attr1',
+            changeId: '1',
+            changes: [
+              RefValueAttributeChanged(
+                attrId: 'actor2',
+                attrName: 'attr1',
+                newValue: 'firstValue',
+              ),
+            ],
+          );
 
-        changeStream.add(change);
-        await Future.delayed(Duration(milliseconds: 10));
+          changeStream.add(change);
+          await Future.delayed(Duration(milliseconds: 10));
 
-        final snapshot = await viewStore.attributeSnapshot(
-          'actor1',
-          'actor2',
-          'attr1',
-        );
-        expect(snapshot.value, 'firstValue');
-        expect(snapshot.changeId, '1');
-      });
+          final snapshot = await viewStore.attributeSnapshot(
+            'actor1',
+            'actor2',
+            'attr1',
+          );
+          expect(snapshot.value, 'firstValue');
+          expect(snapshot.changeId, '1');
+        },
+      );
 
-      test('RefValueAttributeChanged with multiple changes uses only last',
-          () async {
-        final cid = CompositeId('actor1', 'actor2').id;
-        await snapStore.set(
-          '$cid/attr1',
-          ViewSnapshot('initial', '0'),
-        );
+      test(
+        'RefValueAttributeChanged with multiple changes uses only last',
+        () async {
+          final cid = CompositeId('actor1', 'actor2').id;
+          await snapStore.set(
+            '$cid/attr1',
+            ViewSnapshot('initial', '0'),
+          );
 
-        final change = ChangeEnvelop(
-          entityName: '',
-          key: cid,
-          name: 'attr1',
-          changeId: '1',
-          changes: [
-            RefValueAttributeChanged(
-              attrId: 'actor2',
-              attrName: 'attr1',
-              newValue: 'first',
-            ),
-            RefValueAttributeChanged(
-              attrId: 'actor2',
-              attrName: 'attr1',
-              newValue: 'second',
-            ),
-            RefValueAttributeChanged(
-              attrId: 'actor2',
-              attrName: 'attr1',
-              newValue: 'third',
-            ),
-          ],
-        );
+          final change = ChangeEnvelop(
+            entityName: '',
+            key: cid,
+            name: 'attr1',
+            changeId: '1',
+            changes: [
+              RefValueAttributeChanged(
+                attrId: 'actor2',
+                attrName: 'attr1',
+                newValue: 'first',
+              ),
+              RefValueAttributeChanged(
+                attrId: 'actor2',
+                attrName: 'attr1',
+                newValue: 'second',
+              ),
+              RefValueAttributeChanged(
+                attrId: 'actor2',
+                attrName: 'attr1',
+                newValue: 'third',
+              ),
+            ],
+          );
 
-        changeStream.add(change);
-        await Future.delayed(Duration(milliseconds: 10));
+          changeStream.add(change);
+          await Future.delayed(Duration(milliseconds: 10));
 
-        final snapshot = await viewStore.attributeSnapshot(
-          'actor1',
-          'actor2',
-          'attr1',
-        );
-        expect(snapshot.value, 'third');
-        expect(snapshot.changeId, '1');
-      });
+          final snapshot = await viewStore.attributeSnapshot(
+            'actor1',
+            'actor2',
+            'attr1',
+          );
+          expect(snapshot.value, 'third');
+          expect(snapshot.changeId, '1');
+        },
+      );
     });
 
     group('Counter attribute changes', () {
-      test('CounterAttrIncremented projects correctly with existing value',
-          () async {
-        final cid = CompositeId('actor1', 'actor2').id;
-        await snapStore.set(
-          '$cid/counter1',
-          ViewSnapshot(10, '0'),
-        );
+      test(
+        'CounterAttrIncremented projects correctly with existing value',
+        () async {
+          final cid = CompositeId('actor1', 'actor2').id;
+          await snapStore.set(
+            '$cid/counter1',
+            ViewSnapshot(10, '0'),
+          );
 
-        final change = ChangeEnvelop(
-          entityName: '',
-          key: cid,
-          name: 'counter1',
-          changeId: '1',
-          changes: [
-            CounterAttrIncremented(
-              attrId: 'actor2',
-              attrName: 'counter1',
-              by: 5,
-            ),
-          ],
-        );
+          final change = ChangeEnvelop(
+            entityName: '',
+            key: cid,
+            name: 'counter1',
+            changeId: '1',
+            changes: [
+              CounterAttrIncremented(
+                attrId: 'actor2',
+                attrName: 'counter1',
+                by: 5,
+              ),
+            ],
+          );
 
-        changeStream.add(change);
-        await Future.delayed(Duration(milliseconds: 10));
+          changeStream.add(change);
+          await Future.delayed(Duration(milliseconds: 10));
 
-        final snapshot = await viewStore.attributeSnapshot(
-          'actor1',
-          'actor2',
-          'counter1',
-        );
-        expect(snapshot.value, 15);
-        expect(snapshot.changeId, '1');
-      });
+          final snapshot = await viewStore.attributeSnapshot(
+            'actor1',
+            'actor2',
+            'counter1',
+          );
+          expect(snapshot.value, 15);
+          expect(snapshot.changeId, '1');
+        },
+      );
 
-      test('CounterAttrIncremented projects correctly with null initial value',
-          () async {
-        final cid = CompositeId('actor1', 'actor2').id;
-        // Don't set initial snapshot - test ?? 0 operator
+      test(
+        'CounterAttrIncremented projects correctly with null initial value',
+        () async {
+          final cid = CompositeId('actor1', 'actor2').id;
+          // Don't set initial snapshot - test ?? 0 operator
 
-        final change = ChangeEnvelop(
-          entityName: '',
-          key: cid,
-          name: 'counter1',
-          changeId: '1',
-          changes: [
-            CounterAttrIncremented(
-              attrId: 'actor2',
-              attrName: 'counter1',
-              by: 5,
-            ),
-          ],
-        );
+          final change = ChangeEnvelop(
+            entityName: '',
+            key: cid,
+            name: 'counter1',
+            changeId: '1',
+            changes: [
+              CounterAttrIncremented(
+                attrId: 'actor2',
+                attrName: 'counter1',
+                by: 5,
+              ),
+            ],
+          );
 
-        changeStream.add(change);
-        await Future.delayed(Duration(milliseconds: 10));
+          changeStream.add(change);
+          await Future.delayed(Duration(milliseconds: 10));
 
-        final snapshot = await viewStore.attributeSnapshot(
-          'actor1',
-          'actor2',
-          'counter1',
-        );
-        expect(snapshot.value, 5); // null + 5 = 0 + 5 = 5
-        expect(snapshot.changeId, '1');
-      });
+          final snapshot = await viewStore.attributeSnapshot(
+            'actor1',
+            'actor2',
+            'counter1',
+          );
+          expect(snapshot.value, 5); // null + 5 = 0 + 5 = 5
+          expect(snapshot.changeId, '1');
+        },
+      );
 
       test('CounterAttrDecremented projects correctly', () async {
         final cid = CompositeId('actor1', 'actor2').id;
@@ -784,46 +794,48 @@ void main() {
         expect(snapshot.changeId, '1');
       });
 
-      test('Multiple counter attribute operations with null initial value',
-          () async {
-        final cid = CompositeId('actor1', 'actor2').id;
-        // Don't set initial snapshot
+      test(
+        'Multiple counter attribute operations with null initial value',
+        () async {
+          final cid = CompositeId('actor1', 'actor2').id;
+          // Don't set initial snapshot
 
-        final change = ChangeEnvelop(
-          entityName: '',
-          key: cid,
-          name: 'counter1',
-          changeId: '1',
-          changes: [
-            CounterAttrIncremented(
-              attrId: 'actor2',
-              attrName: 'counter1',
-              by: 10,
-            ),
-            CounterAttrIncremented(
-              attrId: 'actor2',
-              attrName: 'counter1',
-              by: 5,
-            ),
-            CounterAttrDecremented(
-              attrId: 'actor2',
-              attrName: 'counter1',
-              by: 3,
-            ),
-          ],
-        );
+          final change = ChangeEnvelop(
+            entityName: '',
+            key: cid,
+            name: 'counter1',
+            changeId: '1',
+            changes: [
+              CounterAttrIncremented(
+                attrId: 'actor2',
+                attrName: 'counter1',
+                by: 10,
+              ),
+              CounterAttrIncremented(
+                attrId: 'actor2',
+                attrName: 'counter1',
+                by: 5,
+              ),
+              CounterAttrDecremented(
+                attrId: 'actor2',
+                attrName: 'counter1',
+                by: 3,
+              ),
+            ],
+          );
 
-        changeStream.add(change);
-        await Future.delayed(Duration(milliseconds: 10));
+          changeStream.add(change);
+          await Future.delayed(Duration(milliseconds: 10));
 
-        final snapshot = await viewStore.attributeSnapshot(
-          'actor1',
-          'actor2',
-          'counter1',
-        );
-        expect(snapshot.value, 12); // 0 + 10 + 5 - 3
-        expect(snapshot.changeId, '1');
-      });
+          final snapshot = await viewStore.attributeSnapshot(
+            'actor1',
+            'actor2',
+            'counter1',
+          );
+          expect(snapshot.value, 12); // 0 + 10 + 5 - 3
+          expect(snapshot.changeId, '1');
+        },
+      );
     });
   });
 }
