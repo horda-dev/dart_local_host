@@ -10,9 +10,8 @@ import 'query_test.mocks.dart';
 void main() {
   group('query', () {
     test('should run the query', () async {
-      final messageStore = MockMessageStore();
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(messageStore, snapStore);
+      final store = MemoryViewStore(snapStore);
 
       void viewStub(
         String entityName,
