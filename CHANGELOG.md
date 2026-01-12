@@ -1,3 +1,10 @@
+## 0.8.2
+
+- **FIX**: fix attribute change projection
+- **FIX**: fix entity/service calls not throwing on failure in some cases
+- **FIX**: handle uncaught exceptions in process funcs crashing the server
+- **CHORE**: update dependencies
+
 ## 0.8.1
 
 - **FIX**: run business processes on entity events
