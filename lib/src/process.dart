@@ -201,29 +201,6 @@ class _ProcessContext implements ProcessContext {
   }
 
   @override
-  Future<String> scheduleEntity({
-    required String name,
-    required EntityId id,
-    required Duration after,
-    required RemoteCommand cmd,
-  }) async {
-    return host._system.cmdScheduler.scheduleEntity(
-      entityName: name,
-      to: id,
-      at: clock.add(after),
-      cmd: cmd,
-    );
-  }
-
-  @override
-  void unscheduleEntity({
-    required String name,
-    required String scheduleId,
-  }) async {
-    host._system.cmdScheduler.cancel(scheduleId);
-  }
-
-  @override
   Future<E> callService<E extends RemoteEvent>({
     required String name,
     required RemoteCommand cmd,
@@ -257,27 +234,6 @@ class _ProcessContext implements ProcessContext {
     required RemoteCommand cmd,
   }) {
     host._system.sendService(name, processId, cmd);
-  }
-
-  @override
-  Future<String> scheduleService({
-    required String name,
-    required Duration after,
-    required RemoteCommand cmd,
-  }) async {
-    return host._system.cmdScheduler.scheduleService(
-      serviceName: name,
-      at: clock.add(after),
-      cmd: cmd,
-    );
-  }
-
-  @override
-  void unscheduleService({
-    required String name,
-    required String scheduleId,
-  }) async {
-    host._system.cmdScheduler.cancel(scheduleId);
   }
 }
 

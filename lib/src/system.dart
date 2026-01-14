@@ -2,14 +2,13 @@ import 'dart:async';
 
 import 'package:horda_server/horda_server.dart';
 import 'package:logging/logging.dart';
-import 'package:quiver/async.dart';
 import 'package:stack_trace/stack_trace.dart';
 
 import 'change_id.dart';
-import 'command_scheduler.dart';
 import 'entity.dart';
 import 'http.dart';
 import 'process.dart';
+import 'scheduler.dart';
 import 'service.dart';
 import 'store.dart';
 
@@ -30,6 +29,8 @@ final class HordaServerSystem {
     httpServer = HttpServer(
       system: this,
     );
+
+    scheduler = Scheduler(this);
   }
 
   late final MessageStore messageStore;
@@ -42,7 +43,7 @@ final class HordaServerSystem {
 
   final changeIdTracker = ChangeIdTracker();
 
-  late final CommandScheduler cmdScheduler;
+  late final Scheduler scheduler;
 
   late final Logger logger;
 
@@ -55,12 +56,6 @@ final class HordaServerSystem {
 
     viewStore.startProjectingChanges(messageStore.allChanges);
 
-    cmdScheduler = CommandScheduler(this);
-
-    _tickerSub = _ticker.listen(
-      (now) => cmdScheduler.tick(now),
-    );
-
     httpServer.start();
 
     logger.info('server system started');
@@ -69,7 +64,7 @@ final class HordaServerSystem {
   Future<void> stop() async {
     logger.fine('stopping server system...');
 
-    _tickerSub?.cancel();
+    scheduler.cancelAll();
 
     stopEntities();
     stopServices();
@@ -411,12 +406,6 @@ final class HordaServerSystem {
   // Tracks which process group handles which event types to detect overlaps
   final _processEventHandlers =
       <String, String>{}; // event type -> process group name
-
-  final _ticker = Metronome.epoch(
-    const Duration(seconds: 1),
-  );
-
-  StreamSubscription<DateTime>? _tickerSub;
 }
 
 final class HordaServerTestSystem extends HordaServerSystem {
