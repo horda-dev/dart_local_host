@@ -64,6 +64,63 @@ class Scheduler {
     timer.cancel();
   }
 
+  /// Schedules a command to be sent to an entity after a delay.
+  ///
+  /// Returns a scheduleId that can be used to cancel the scheduled command.
+  String scheduleEntity({
+    required String entityName,
+    required EntityId to,
+    required Duration after,
+    required RemoteCommand cmd,
+    required String scheduledBy,
+  }) {
+    final scheduleId = Xid().toString();
+
+    logger.fine(
+      'scheduling entity command to $entityName:$to after ${after.inMilliseconds}ms by process $scheduledBy, scheduleId: $scheduleId',
+    );
+
+    final timer = Timer(after, () {
+      logger.info(
+        'sending scheduled entity command to $entityName:$to from process $scheduledBy, scheduleId: $scheduleId',
+      );
+      system.sendEntity(entityName, to, scheduledBy, cmd);
+      _timers.remove(scheduleId);
+    });
+
+    _timers[scheduleId] = timer;
+
+    return scheduleId;
+  }
+
+  /// Schedules a command to be sent to a service after a delay.
+  ///
+  /// Returns a scheduleId that can be used to cancel the scheduled command.
+  String scheduleService({
+    required String serviceName,
+    required Duration after,
+    required RemoteCommand cmd,
+    required String scheduledBy,
+  }) {
+    final scheduleId = Xid().toString();
+
+    logger.fine(
+      'scheduling service command to $serviceName after ${after.inMilliseconds}ms by process $scheduledBy, scheduleId: $scheduleId',
+    );
+
+    final timer = Timer(after, () {
+      logger.info(
+        'sending scheduled service command to $serviceName from process $scheduledBy, scheduleId: $scheduleId',
+      );
+      system.sendService(serviceName, scheduledBy, cmd);
+      _timers.remove(scheduleId);
+    });
+
+    _timers[scheduleId] = timer;
+
+    return scheduleId;
+  }
+
   /// Cancels all pending schedules.
   ///
   /// This is useful for cleanup during shutdown.

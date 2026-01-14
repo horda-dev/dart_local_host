@@ -193,6 +193,32 @@ class _ProcessContext implements ProcessContext {
     host._system.sendEntity(name, id, processId, cmd);
   }
 
+  @Deprecated('Use process scheduling in EntityContext instead')
+  @override
+  Future<String> scheduleEntity({
+    required String name,
+    required EntityId id,
+    required Duration after,
+    required RemoteCommand cmd,
+  }) async {
+    return host._system.scheduler.scheduleEntity(
+      entityName: name,
+      to: id,
+      after: after,
+      cmd: cmd,
+      scheduledBy: processId,
+    );
+  }
+
+  @Deprecated('Use process scheduling in EntityContext instead')
+  @override
+  void unscheduleEntity({
+    required String name,
+    required String scheduleId,
+  }) {
+    host._system.scheduler.cancel(scheduleId);
+  }
+
   @override
   Future<E> callService<E extends RemoteEvent>({
     required String name,
@@ -227,6 +253,30 @@ class _ProcessContext implements ProcessContext {
     required RemoteCommand cmd,
   }) {
     host._system.sendService(name, processId, cmd);
+  }
+
+  @Deprecated('Use process scheduling in EntityContext instead')
+  @override
+  Future<String> scheduleService({
+    required String name,
+    required Duration after,
+    required RemoteCommand cmd,
+  }) async {
+    return host._system.scheduler.scheduleService(
+      serviceName: name,
+      after: after,
+      cmd: cmd,
+      scheduledBy: processId,
+    );
+  }
+
+  @Deprecated('Use process scheduling in EntityContext instead')
+  @override
+  void unscheduleService({
+    required String name,
+    required String scheduleId,
+  }) {
+    host._system.scheduler.cancel(scheduleId);
   }
 }
 
