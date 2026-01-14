@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:async/async.dart';
 import 'package:horda_server/horda_server.dart';
 import 'package:logging/logging.dart';
 
@@ -16,13 +15,7 @@ class ProcessGroupHost {
     _funcs = _ProcessFuncs(this, logger);
     processGroup.registerFuncs(_funcs);
 
-    final allEvents = StreamGroup<EventEnvelop>()
-      ..add(_system.dispatchedEvents())
-      ..add(_system.entityEvents())
-      // No more streams will be added to the stream group.
-      ..close();
-
-    _sub = allEvents.stream.listen(_handleEvent);
+    _sub = _system.dispatchedEvents().listen(_handleEvent);
 
     logger.info('$name host started');
   }

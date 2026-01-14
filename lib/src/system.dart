@@ -389,6 +389,10 @@ final class HordaServerSystem {
     );
   }
 
+  /// Stream of dispatched events. This stream contains both events dispatched by
+  /// the client and events scheduled by entities.
+  ///
+  /// Events from this stream trigger client and scheduled processes.
   Stream<EventEnvelop> dispatchedEvents() {
     return messageStore.dispatchedEvents();
   }
