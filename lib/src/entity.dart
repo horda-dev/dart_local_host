@@ -377,9 +377,7 @@ class _EntityContext implements EntityContext {
   }
 
   @override
-  Future<void> unscheduleProcess({
-    required String scheduleId,
-  }) async {
+  Future<void> unscheduleProcess(String scheduleId) async {
     host._system.scheduler.cancel(scheduleId);
   }
 
