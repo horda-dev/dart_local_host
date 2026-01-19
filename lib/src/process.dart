@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:async/async.dart';
 import 'package:horda_server/horda_server.dart';
 import 'package:logging/logging.dart';
 
@@ -16,13 +15,7 @@ class ProcessGroupHost {
     _funcs = _ProcessFuncs(this, logger);
     processGroup.registerFuncs(_funcs);
 
-    final allEvents = StreamGroup<EventEnvelop>()
-      ..add(_system.dispatchedEvents())
-      ..add(_system.entityEvents())
-      // No more streams will be added to the stream group.
-      ..close();
-
-    _sub = allEvents.stream.listen(_handleEvent);
+    _sub = _system.dispatchedEvents().listen(_handleEvent);
 
     logger.info('$name host started');
   }
@@ -200,6 +193,7 @@ class _ProcessContext implements ProcessContext {
     host._system.sendEntity(name, id, processId, cmd);
   }
 
+  @Deprecated('Use process scheduling in EntityContext instead')
   @override
   Future<String> scheduleEntity({
     required String name,
@@ -207,20 +201,22 @@ class _ProcessContext implements ProcessContext {
     required Duration after,
     required RemoteCommand cmd,
   }) async {
-    return host._system.cmdScheduler.scheduleEntity(
+    return host._system.scheduler.scheduleEntity(
       entityName: name,
       to: id,
-      at: clock.add(after),
+      after: after,
       cmd: cmd,
+      scheduledBy: processId,
     );
   }
 
+  @Deprecated('Use process scheduling in EntityContext instead')
   @override
   void unscheduleEntity({
     required String name,
     required String scheduleId,
-  }) async {
-    host._system.cmdScheduler.cancel(scheduleId);
+  }) {
+    host._system.scheduler.cancel(scheduleId);
   }
 
   @override
@@ -259,25 +255,28 @@ class _ProcessContext implements ProcessContext {
     host._system.sendService(name, processId, cmd);
   }
 
+  @Deprecated('Use process scheduling in EntityContext instead')
   @override
   Future<String> scheduleService({
     required String name,
     required Duration after,
     required RemoteCommand cmd,
   }) async {
-    return host._system.cmdScheduler.scheduleService(
+    return host._system.scheduler.scheduleService(
       serviceName: name,
-      at: clock.add(after),
+      after: after,
       cmd: cmd,
+      scheduledBy: processId,
     );
   }
 
+  @Deprecated('Use process scheduling in EntityContext instead')
   @override
   void unscheduleService({
     required String name,
     required String scheduleId,
-  }) async {
-    host._system.cmdScheduler.cancel(scheduleId);
+  }) {
+    host._system.scheduler.cancel(scheduleId);
   }
 }
 

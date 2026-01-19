@@ -1,3 +1,9 @@
+## 0.9.0
+
+- **FEAT**: add process scheduling via EntityContext
+- **DEPRECATION**: deprecated command scheduling API in ProcessContext
+- **CHORE**: update horda_server to 0.22.0
+
 ## 0.8.1
 
 - **FIX**: run business processes on entity events

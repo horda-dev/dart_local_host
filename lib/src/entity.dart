@@ -363,6 +363,24 @@ class _EntityContext implements EntityContext {
     host._system.removeEntity(host.entity.name, entityId);
   }
 
+  @override
+  Future<String> scheduleProcess({
+    required RemoteEvent event,
+    required Duration after,
+  }) async {
+    final scheduleId = host._system.scheduler.scheduleProcess(
+      after: after,
+      event: event,
+      scheduledBy: entityId,
+    );
+    return scheduleId;
+  }
+
+  @override
+  Future<void> unscheduleProcess(String scheduleId) async {
+    host._system.scheduler.cancel(scheduleId);
+  }
+
   // Not exposed in EntityContext API yet.
   Logger get logger => host.logger;
 }
