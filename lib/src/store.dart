@@ -10,6 +10,26 @@ import 'log.dart';
 import 'process.dart';
 import 'system.dart';
 
+/// Global counter for generating list item positions
+double _listPositionCounter = 0.0;
+
+/// Generates a new unique position value for list items
+double _nextListPosition() => ++_listPositionCounter;
+
+/// Result of getting a range from a list view snapshot.
+/// Contains the list items and the positions for the boundaries.
+class ListViewRange {
+  ListViewRange({
+    required this.items,
+    required this.startAfterPos,
+    required this.endBeforePos,
+  });
+
+  final List<ListItem> items;
+  final double startAfterPos;
+  final double endBeforePos;
+}
+
 /// Key for identifying a view across the system.
 /// Consists of [entityName], [entityId], and [viewName].
 class ViewKey {
@@ -831,24 +851,24 @@ abstract class ViewStore {
 
   Future<void> seed(Map<String, dynamic> seed);
 
-  /// Returns the next item in a list view after the given key.
-  /// Returns null if no item exists after the key.
-  /// Items are ordered lexicographically by their keys.
+  /// Returns the next item in a list view after the given position.
+  /// Returns null if no item exists after the position.
+  /// Items are ordered by their position values.
   Future<ListItem?> getNextListItem(
     String entityName,
     EntityId entityId,
     String viewName,
-    String afterKey,
+    double afterPos,
   );
 
-  /// Returns the previous item in a list view before the given key.
-  /// Returns null if no item exists before the key.
-  /// Items are ordered lexicographically by their keys.
+  /// Returns the previous item in a list view before the given position.
+  /// Returns null if no item exists before the position.
+  /// Items are ordered by their position values.
   Future<ListItem?> getPreviousListItem(
     String entityName,
     EntityId entityId,
     String viewName,
-    String beforeKey,
+    double beforePos,
   );
 }
 
@@ -887,12 +907,11 @@ class MemoryViewStore implements ViewStore {
 
       dynamic snapValue = view.value;
 
-      // Create item keys for RefListView
+      // Create list items with positions for RefListView
       if (view.type == 'RefListView') {
-        snapValue = (view.value as List<String>)
-            .map((v) => ListItem(Xid().toString(), v))
-            // Make sure that assigned value is of type List<ListItem>!
-            // Method map() returns MappedListIterable<String, ListItem>.
+        final items = view.value as List<String>;
+        snapValue = items
+            .map((refId) => ListItem(_nextListPosition(), refId))
             .toList();
       }
 
@@ -1041,7 +1060,7 @@ class MemoryViewStore implements ViewStore {
       } else if (view is ListQueryDef) {
         _throwIfInvalidPaginationParams(view);
 
-        final pageItems = _getRangeFromRefListSnapshot(
+        final range = _getRangeFromRefListSnapshot(
           viewSnap,
           view.startAfter,
           view.endBefore,
@@ -1053,10 +1072,10 @@ class MemoryViewStore implements ViewStore {
         if (pages != null) {
           final page = _createListPage(
             ViewKey(query.entityName, actorId, name),
-            view.startAfter,
-            view.endBefore,
+            range.startAfterPos,
+            range.endBeforePos,
             view.limit,
-            pageItems,
+            range.items,
           );
           pageId = page.pageId;
           pages.add(page);
@@ -1066,8 +1085,8 @@ class MemoryViewStore implements ViewStore {
         // maps itemId to {'attrName': attrValue}
         final allAttrs = <String, Map<String, dynamic>>{};
 
-        for (final pageItem in pageItems) {
-          final itemId = pageItem.value;
+        for (final pageItem in range.items) {
+          final itemId = pageItem.refId;
           // getting attr values for item id
           final itemAttrs = <String, dynamic>{};
           for (final attrName in view.attrs) {
@@ -1093,7 +1112,7 @@ class MemoryViewStore implements ViewStore {
           ListQueryResultBuilder(
             entry.key,
             allAttrs,
-            ViewSnapshot(pageItems, viewSnap.changeId),
+            ViewSnapshot(range.items, viewSnap.changeId),
             items,
             pageId,
           ),
@@ -1180,24 +1199,11 @@ class MemoryViewStore implements ViewStore {
       // List
       ListViewItemAdded() =>
         (currentValue as List<ListItem>)..add(
-          ListItem(change.key, change.value),
+          ListItem(_nextListPosition(), change.item),
         ),
-      ListViewItemAddedIfAbsent() => () {
-        currentValue as List<ListItem>;
-        final contains =
-            currentValue.indexWhere((i) => i.value == change.value) > -1;
-
-        if (contains) {
-          return currentValue;
-        }
-
-        return currentValue..add(
-          ListItem(change.key, change.value),
-        );
-      }(),
       ListViewItemRemoved() =>
         (currentValue as List<ListItem>)
-          ..removeWhere((i) => i.key == change.key),
+          ..removeWhere((i) => i.refId == change.item),
       ListViewCleared() => (currentValue as List<ListItem>)..clear(),
       // Attr Value
       RefValueAttributeChanged() => change.newValue,
@@ -1214,14 +1220,14 @@ class MemoryViewStore implements ViewStore {
     String entityName,
     EntityId entityId,
     String viewName,
-    String afterKey,
+    double afterPos,
   ) async {
     final snapshot = await viewSnapshot(entityName, entityId, viewName);
     final items = snapshot.value as List<ListItem>;
 
     // To get the "right" neighbour - search in forward direction, from 0 to items.length.
     // Do not use "lastIndexWhere" - you'll always get the last item in the list.
-    final nextIndex = items.indexWhere((i) => i.key > afterKey);
+    final nextIndex = items.indexWhere((i) => i.position > afterPos);
 
     if (nextIndex == -1) {
       return null;
@@ -1235,14 +1241,14 @@ class MemoryViewStore implements ViewStore {
     String entityName,
     EntityId entityId,
     String viewName,
-    String beforeKey,
+    double beforePos,
   ) async {
     final snapshot = await viewSnapshot(entityName, entityId, viewName);
     final items = snapshot.value as List<ListItem>;
 
     // To get the "left" neighbour - search in reverse, from items.length to 0.
     // Do not use "firstIndexWhere" - you'll always get the first item in the list.
-    final previousIndex = items.lastIndexWhere((i) => i.key < beforeKey);
+    final previousIndex = items.lastIndexWhere((i) => i.position < beforePos);
 
     if (previousIndex == -1) {
       return null;
@@ -1251,7 +1257,7 @@ class MemoryViewStore implements ViewStore {
     return items[previousIndex];
   }
 
-  List<ListItem> _getRangeFromRefListSnapshot(
+  ListViewRange _getRangeFromRefListSnapshot(
     ViewSnapshot snap,
     String startAfter,
     String endBefore,
@@ -1259,21 +1265,25 @@ class MemoryViewStore implements ViewStore {
   ) {
     final list = snap.value as List<ListItem>;
 
-    // Find start index (exclusive of startAfter)
+    // Find start position and index (exclusive of startAfter)
     int startIndex = 0;
+    double startAfterPos = 0.0;
     if (startAfter.isNotEmpty) {
-      final afterIndex = list.indexWhere((item) => item.key == startAfter);
+      final afterIndex = list.indexWhere((item) => item.refId == startAfter);
       if (afterIndex != -1) {
         startIndex = afterIndex + 1;
+        startAfterPos = list[afterIndex].position;
       }
     }
 
-    // Find end index (exclusive of endBefore)
+    // Find end position and index (exclusive of endBefore)
     int endIndex = list.length;
+    double endBeforePos = 0.0;
     if (endBefore.isNotEmpty) {
-      final beforeIndex = list.indexWhere((item) => item.key == endBefore);
+      final beforeIndex = list.indexWhere((item) => item.refId == endBefore);
       if (beforeIndex != -1) {
         endIndex = beforeIndex;
+        endBeforePos = list[beforeIndex].position;
       }
     }
 
@@ -1292,22 +1302,26 @@ class MemoryViewStore implements ViewStore {
       }
     }
 
-    return result;
+    return ListViewRange(
+      items: result,
+      startAfterPos: startAfterPos,
+      endBeforePos: endBeforePos,
+    );
   }
 
   ListViewPage _createListPage(
     ViewKey viewKey,
-    String startAfter,
-    String endBefore,
+    double startAfter,
+    double endBefore,
     int limit,
     List<ListItem> pageItems,
   ) {
     return ListViewPage(
       pageId: Xid().toString(),
-      startAfter: startAfter,
-      endBefore: endBefore,
-      lo: pageItems.firstOrNull?.key ?? '',
-      hi: pageItems.lastOrNull?.key ?? '',
+      startAfter: startAfter.toString(),
+      endBefore: endBefore.toString(),
+      lo: pageItems.firstOrNull?.position.toString() ?? '',
+      hi: pageItems.lastOrNull?.position.toString() ?? '',
       limit: limit,
       currentSize: pageItems.length,
       viewKey: viewKey,
