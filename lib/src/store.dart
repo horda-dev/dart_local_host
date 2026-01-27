@@ -10,12 +10,6 @@ import 'log.dart';
 import 'process.dart';
 import 'system.dart';
 
-/// Global counter for generating list item positions
-double _listPositionCounter = 0.0;
-
-/// Generates a new unique position value for list items
-double _nextListPosition() => ++_listPositionCounter;
-
 /// Result of getting a range from a list view snapshot.
 /// Contains the list items and the positions for the boundaries.
 class ListViewRange {
@@ -1453,6 +1447,12 @@ class MemoryViewStore implements ViewStore {
   }
 
   StreamSubscription<ChangeEnvelop>? _viewUpdaterSub;
+
+  /// Counter for generating list item positions
+  double _listPositionCounter = 0.0;
+
+  /// Generates a new unique position value for list items.
+  double _nextListPosition() => ++_listPositionCounter;
 }
 
 abstract class KeyValueStore {
