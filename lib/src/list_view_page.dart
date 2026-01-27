@@ -51,7 +51,10 @@ class ListViewPage {
   /// View store for querying list items.
   final ViewStore viewStore;
 
-  /// Returns true if this is a reverse pagination page (limit < 0).
+  /// Returns true if this is a forward pagination page.
+  bool get isForward => limit > 0;
+
+  /// Returns true if this is a reverse pagination page.
   bool get isReverse => limit < 0;
 
   /// Returns the maximum size of this page.
@@ -237,7 +240,8 @@ class ListViewPage {
 
     // After window - affected if can extend OR push-out scenario
     if (isAfterWindow(pos)) {
-      return canExtendWindow() || (isReverse && canExtendBeyond(pos));
+      return (isForward && canExtendWindow()) ||
+          (isReverse && canExtendBeyond(pos));
     }
 
     return false;
