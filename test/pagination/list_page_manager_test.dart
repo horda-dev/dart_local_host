@@ -11,12 +11,12 @@ import 'list_page_manager_test.mocks.dart';
 void main() {
   ListViewPage createTestPage({
     required String pageId,
-    required String lo,
-    required String hi,
+    required double lo,
+    required double hi,
     required int limit,
     required int currentSize,
-    String startAfter = '',
-    String endBefore = '',
+    double startAfter = 0,
+    double endBefore = 0,
   }) {
     final viewKey = ViewKey('TestEntity', 'actor1', 'list1');
     final mockViewStore = MockViewStore();
@@ -39,8 +39,8 @@ void main() {
       final manager = ListPageManager();
       final page = createTestPage(
         pageId: 'page1',
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 5,
       );
@@ -55,8 +55,8 @@ void main() {
       final manager = ListPageManager();
       final page = createTestPage(
         pageId: 'page1',
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 5,
       );
@@ -78,16 +78,16 @@ void main() {
 
       final page1 = createTestPage(
         pageId: 'page1',
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 5,
         currentSize: 5,
       );
 
       final page2 = createTestPage(
         pageId: 'page2',
-        lo: 'key6',
-        hi: 'key10',
+        lo: 6.0,
+        hi: 10.0,
         limit: 5,
         currentSize: 5,
       );
@@ -115,15 +115,15 @@ void main() {
       // Create a page with room to extend
       final page = createTestPage(
         pageId: 'page1',
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 5,
       );
 
       manager.addPage(page);
 
-      final change = ListViewItemAdded('key3', 'actor2');
+      final change = QueryListViewItemAdded(pos: 3.0, refId: 'actor2');
       final envelope = ChangeEnvelop(
         entityName: 'TestEntity',
         key: 'actor1',
@@ -141,9 +141,9 @@ void main() {
         (resultEnvelope.changes.first as ListPageItemAdded).pageId,
         'page1',
       );
-      expect((resultEnvelope.changes.first as ListPageItemAdded).key, 'key3');
+      expect((resultEnvelope.changes.first as ListPageItemAdded).pos, 3.0);
       expect(
-        (resultEnvelope.changes.first as ListPageItemAdded).value,
+        (resultEnvelope.changes.first as ListPageItemAdded).refId,
         'actor2',
       );
     });
@@ -153,15 +153,15 @@ void main() {
 
       final page = createTestPage(
         pageId: 'page1',
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 5,
       );
 
       manager.addPage(page);
 
-      final change = ListViewItemRemoved('key3');
+      final change = QueryListViewItemRemoved(pos: 3.0, refId: 'actor3');
       final envelope = ChangeEnvelop(
         entityName: 'TestEntity',
         key: 'actor1',
@@ -179,7 +179,7 @@ void main() {
         (resultEnvelope.changes.first as ListPageItemRemoved).pageId,
         'page1',
       );
-      expect((resultEnvelope.changes.first as ListPageItemRemoved).key, 'key3');
+      expect((resultEnvelope.changes.first as ListPageItemRemoved).pos, 3.0);
     });
 
     test('ListViewCleared affects all pages for that view', () async {
@@ -187,16 +187,16 @@ void main() {
 
       final page1 = createTestPage(
         pageId: 'page1',
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 5,
         currentSize: 5,
       );
 
       final page2 = createTestPage(
         pageId: 'page2',
-        lo: 'key6',
-        hi: 'key10',
+        lo: 6.0,
+        hi: 10.0,
         limit: 5,
         currentSize: 5,
       );
@@ -229,7 +229,7 @@ void main() {
     test('change for non-existent view returns original envelope', () async {
       final manager = ListPageManager();
 
-      final change = ListViewItemAdded('key3', 'actor2');
+      final change = QueryListViewItemAdded(pos: 3.0, refId: 'actor2');
       final envelope = ChangeEnvelop(
         entityName: 'TestEntity',
         key: 'actor1',
@@ -248,8 +248,8 @@ void main() {
       // Create a full page
       final page = createTestPage(
         pageId: 'page1',
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 5,
         currentSize: 5,
       );
@@ -257,7 +257,7 @@ void main() {
       manager.addPage(page);
 
       // Add item after the window when page is full
-      final change = ListViewItemAdded('key9', 'actor2');
+      final change = QueryListViewItemAdded(pos: 9.0, refId: 'actor2');
       final envelope = ChangeEnvelop(
         entityName: 'TestEntity',
         key: 'actor1',

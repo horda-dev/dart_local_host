@@ -9,12 +9,12 @@ import 'list_view_page_test.mocks.dart';
 void main() {
   // Helper function to create a forward pagination ListViewPage for testing
   ListViewPage newTestPage({
-    required String lo,
-    required String hi,
+    required double lo,
+    required double hi,
     required int limit,
     required int currentSize,
-    String startAfter = '',
-    String endBefore = '',
+    double startAfter = 0,
+    double endBefore = 0,
   }) {
     final viewKey = ViewKey('TestEntity', 'actor1', 'list1');
     final mockViewStore = MockViewStore();
@@ -34,9 +34,9 @@ void main() {
 
   // Helper function to create a reverse pagination ListViewPage for testing
   ListViewPage newTestReversePage({
-    required String lo,
-    required String hi,
-    required String endBefore,
+    required double lo,
+    required double hi,
+    required double endBefore,
     required int limit,
     required int currentSize,
   }) {
@@ -45,7 +45,7 @@ void main() {
 
     return ListViewPage(
       pageId: 'test-page',
-      startAfter: '',
+      startAfter: 0,
       endBefore: endBefore,
       lo: lo,
       hi: hi,
@@ -59,8 +59,8 @@ void main() {
   group('ListViewPage - Helper methods', () {
     test('maxSize returns absolute value of limit (positive)', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
@@ -69,8 +69,8 @@ void main() {
 
     test('maxSize returns absolute value of limit (negative)', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: -10,
         currentSize: 5,
       );
@@ -79,8 +79,8 @@ void main() {
 
     test('isReverse returns false for positive limit', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
@@ -89,8 +89,8 @@ void main() {
 
     test('isReverse returns true for negative limit', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: -10,
         currentSize: 5,
       );
@@ -99,8 +99,8 @@ void main() {
 
     test('isFull returns true when currentSize equals maxSize', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 5,
         currentSize: 5,
       );
@@ -109,8 +109,8 @@ void main() {
 
     test('isFull returns false when currentSize less than maxSize', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
@@ -119,8 +119,8 @@ void main() {
 
     test('isEmpty returns true when currentSize is zero', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 0,
       );
@@ -129,8 +129,8 @@ void main() {
 
     test('isEmpty returns false when currentSize is non-zero', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
@@ -139,8 +139,8 @@ void main() {
 
     test('canExtendWindow returns true when not full', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
@@ -149,8 +149,8 @@ void main() {
 
     test('canExtendWindow returns false when full', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 5,
         currentSize: 5,
       );
@@ -159,180 +159,180 @@ void main() {
   });
 
   group('ListViewPage - Boundary detection', () {
-    test('isInsideWindow returns true for key between lo and hi', () {
+    test('isInsideWindow returns true for pos between lo and hi', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isInsideWindow('key5'), true);
+      expect(page.isInsideWindow(5.0), true);
     });
 
-    test('isInsideWindow returns false for key at lo boundary', () {
+    test('isInsideWindow returns false for pos at lo boundary', () {
       final page = newTestPage(
-        lo: 'key5',
-        hi: 'key9',
+        lo: 5.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isInsideWindow('key5'), false);
+      expect(page.isInsideWindow(5.0), false);
     });
 
-    test('isInsideWindow returns false for key at hi boundary', () {
+    test('isInsideWindow returns false for pos at hi boundary', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isInsideWindow('key5'), false);
+      expect(page.isInsideWindow(5.0), false);
     });
 
-    test('isInsideWindow returns false for key before lo', () {
+    test('isInsideWindow returns false for pos before lo', () {
       final page = newTestPage(
-        lo: 'key5',
-        hi: 'key9',
+        lo: 5.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isInsideWindow('key2'), false);
+      expect(page.isInsideWindow(2.0), false);
     });
 
-    test('isInsideWindow returns false for key after hi', () {
+    test('isInsideWindow returns false for pos after hi', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isInsideWindow('key9'), false);
+      expect(page.isInsideWindow(9.0), false);
     });
 
-    test('isInsideWindowInclusive returns true for key at lo boundary', () {
+    test('isInsideWindowInclusive returns true for pos at lo boundary', () {
       final page = newTestPage(
-        lo: 'key5',
-        hi: 'key9',
+        lo: 5.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isInsideWindowInclusive('key5'), true);
+      expect(page.isInsideWindowInclusive(5.0), true);
     });
 
-    test('isInsideWindowInclusive returns true for key at hi boundary', () {
+    test('isInsideWindowInclusive returns true for pos at hi boundary', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isInsideWindowInclusive('key5'), true);
+      expect(page.isInsideWindowInclusive(5.0), true);
     });
 
-    test('isInsideWindowInclusive returns true for key between lo and hi', () {
+    test('isInsideWindowInclusive returns true for pos between lo and hi', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isInsideWindowInclusive('key5'), true);
+      expect(page.isInsideWindowInclusive(5.0), true);
     });
 
-    test('isInsideWindowInclusive returns false for key before lo', () {
+    test('isInsideWindowInclusive returns false for pos before lo', () {
       final page = newTestPage(
-        lo: 'key5',
-        hi: 'key9',
+        lo: 5.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isInsideWindowInclusive('key2'), false);
+      expect(page.isInsideWindowInclusive(2.0), false);
     });
 
-    test('isInsideWindowInclusive returns false for key after hi', () {
+    test('isInsideWindowInclusive returns false for pos after hi', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isInsideWindowInclusive('key9'), false);
+      expect(page.isInsideWindowInclusive(9.0), false);
     });
 
-    test('isAfterWindow returns true for key after hi', () {
+    test('isAfterWindow returns true for pos after hi', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isAfterWindow('key9'), true);
+      expect(page.isAfterWindow(9.0), true);
     });
 
-    test('isAfterWindow returns false for key at hi', () {
+    test('isAfterWindow returns false for pos at hi', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key5',
+        lo: 1.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isAfterWindow('key5'), false);
+      expect(page.isAfterWindow(5.0), false);
     });
 
-    test('isAfterWindow returns false for key before hi', () {
+    test('isAfterWindow returns false for pos before hi', () {
       final page = newTestPage(
-        lo: 'key1',
-        hi: 'key9',
+        lo: 1.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.isAfterWindow('key5'), false);
+      expect(page.isAfterWindow(5.0), false);
     });
   });
 
   group('ListViewPage - canExtendBeyond', () {
     test('canExtendBeyond returns true when no endBefore constraint', () {
       final page = newTestReversePage(
-        lo: 'key1',
-        hi: 'key20',
-        endBefore: '',
+        lo: 1.0,
+        hi: 20.0,
+        endBefore: 0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.canExtendBeyond('key999'), true);
+      expect(page.canExtendBeyond(999.0), true);
     });
 
-    test('canExtendBeyond returns true when key before endBefore', () {
+    test('canExtendBeyond returns true when pos before endBefore', () {
       final page = newTestReversePage(
-        lo: 'key1',
-        hi: 'key20',
-        endBefore: 'key50',
+        lo: 1.0,
+        hi: 20.0,
+        endBefore: 50.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.canExtendBeyond('key30'), true);
+      expect(page.canExtendBeyond(30.0), true);
     });
 
-    test('canExtendBeyond returns false when key equals endBefore', () {
+    test('canExtendBeyond returns false when pos equals endBefore', () {
       final page = newTestReversePage(
-        lo: 'key1',
-        hi: 'key20',
-        endBefore: 'key50',
+        lo: 1.0,
+        hi: 20.0,
+        endBefore: 50.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.canExtendBeyond('key50'), false);
+      expect(page.canExtendBeyond(50.0), false);
     });
 
-    test('canExtendBeyond returns false when key after endBefore', () {
+    test('canExtendBeyond returns false when pos after endBefore', () {
       final page = newTestReversePage(
-        lo: 'key1',
-        hi: 'key20',
-        endBefore: 'key50',
+        lo: 1.0,
+        hi: 20.0,
+        endBefore: 50.0,
         limit: 10,
         currentSize: 5,
       );
-      expect(page.canExtendBeyond('key60'), false);
+      expect(page.canExtendBeyond(60.0), false);
     });
   });
 }

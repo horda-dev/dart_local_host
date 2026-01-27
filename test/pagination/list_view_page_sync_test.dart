@@ -16,10 +16,10 @@ void main() {
 
       final page = ListViewPage(
         pageId: 'page1',
-        startAfter: '',
-        endBefore: '',
-        lo: 'key2',
-        hi: 'key5',
+        startAfter: 0,
+        endBefore: 0,
+        lo: 2.0,
+        hi: 5.0,
         limit: 5,
         currentSize: 4,
         viewKey: viewKey,
@@ -32,12 +32,12 @@ void main() {
           'TestEntity',
           'actor1',
           'list1',
-          'key5',
+          5.0,
         ),
-      ).thenAnswer((_) async => ListItem('key6', 'actor6'));
+      ).thenAnswer((_) async => ListItem(6.0, 'actor6'));
 
       // Remove an item from the page
-      final change = ListViewItemRemoved('key3');
+      final change = QueryListViewItemRemoved(pos: 3.0, refId: 'actor3');
       final changes = await page.handleItemRemoved(change);
 
       // Should return 2 changes: removal + backfill
@@ -46,17 +46,17 @@ void main() {
       // First change: item removed
       expect(changes[0], isA<ListPageItemRemoved>());
       expect((changes[0] as ListPageItemRemoved).pageId, 'page1');
-      expect((changes[0] as ListPageItemRemoved).key, 'key3');
+      expect((changes[0] as ListPageItemRemoved).pos, 3.0);
 
       // Second change: backfill item added
       expect(changes[1], isA<ListPageItemAdded>());
       expect((changes[1] as ListPageItemAdded).pageId, 'page1');
-      expect((changes[1] as ListPageItemAdded).key, 'key6');
-      expect((changes[1] as ListPageItemAdded).value, 'actor6');
+      expect((changes[1] as ListPageItemAdded).pos, 6.0);
+      expect((changes[1] as ListPageItemAdded).refId, 'actor6');
 
       // Verify page state updated correctly
-      expect(page.lo, 'key2'); // lo unchanged
-      expect(page.hi, 'key6'); // hi updated to backfill key
+      expect(page.lo, 2.0); // lo unchanged
+      expect(page.hi, 6.0); // hi updated to backfill key
       expect(page.currentSize, 4); // size maintained
     });
 
@@ -66,10 +66,10 @@ void main() {
 
       final page = ListViewPage(
         pageId: 'page1',
-        startAfter: '',
-        endBefore: 'key99',
-        lo: 'key5',
-        hi: 'key9',
+        startAfter: 0,
+        endBefore: 99.0,
+        lo: 5.0,
+        hi: 9.0,
         limit: -5,
         currentSize: 4,
         viewKey: viewKey,
@@ -82,12 +82,12 @@ void main() {
           'TestEntity',
           'actor1',
           'list1',
-          'key5',
+          5.0,
         ),
-      ).thenAnswer((_) async => ListItem('key3', 'actor3'));
+      ).thenAnswer((_) async => ListItem(3.0, 'actor3'));
 
       // Remove an item from the page
-      final change = ListViewItemRemoved('key7');
+      final change = QueryListViewItemRemoved(pos: 7.0, refId: 'actor7');
       final changes = await page.handleItemRemoved(change);
 
       // Should return 2 changes: removal + backfill
@@ -96,17 +96,17 @@ void main() {
       // First change: item removed
       expect(changes[0], isA<ListPageItemRemoved>());
       expect((changes[0] as ListPageItemRemoved).pageId, 'page1');
-      expect((changes[0] as ListPageItemRemoved).key, 'key7');
+      expect((changes[0] as ListPageItemRemoved).pos, 7.0);
 
       // Second change: backfill item added
       expect(changes[1], isA<ListPageItemAdded>());
       expect((changes[1] as ListPageItemAdded).pageId, 'page1');
-      expect((changes[1] as ListPageItemAdded).key, 'key3');
-      expect((changes[1] as ListPageItemAdded).value, 'actor3');
+      expect((changes[1] as ListPageItemAdded).pos, 3.0);
+      expect((changes[1] as ListPageItemAdded).refId, 'actor3');
 
       // Verify page state updated correctly
-      expect(page.lo, 'key3'); // lo updated to backfill key
-      expect(page.hi, 'key9'); // hi unchanged
+      expect(page.lo, 3.0); // lo updated to backfill key
+      expect(page.hi, 9.0); // hi unchanged
       expect(page.currentSize, 4); // size maintained
     });
 
@@ -118,10 +118,10 @@ void main() {
 
         final page = ListViewPage(
           pageId: 'page1',
-          startAfter: '',
-          endBefore: '',
-          lo: 'key2',
-          hi: 'key5',
+          startAfter: 0,
+          endBefore: 0,
+          lo: 2.0,
+          hi: 5.0,
           limit: 5,
           currentSize: 3,
           viewKey: viewKey,
@@ -134,11 +134,11 @@ void main() {
             'TestEntity',
             'actor1',
             'list1',
-            'key5',
+            5.0,
           ),
         ).thenAnswer((_) async => null);
 
-        final change = ListViewItemRemoved('key3');
+        final change = QueryListViewItemRemoved(pos: 3.0, refId: 'actor3');
         final changes = await page.handleItemRemoved(change);
 
         // Should return only 1 change: removal (no backfill)
@@ -146,12 +146,12 @@ void main() {
         // when no ListPage* changes were produced by the pages.
         expect(changes.length, 1);
         expect(changes[0], isA<ListPageItemRemoved>());
-        expect((changes[0] as ListPageItemRemoved).key, 'key3');
+        expect((changes[0] as ListPageItemRemoved).pos, 3.0);
         expect((changes[0] as ListPageItemRemoved).pageId, 'page1');
 
         // Verify page state: size decremented, boundaries unchanged
-        expect(page.lo, 'key2');
-        expect(page.hi, 'key5');
+        expect(page.lo, 2.0);
+        expect(page.hi, 5.0);
         expect(page.currentSize, 2); // decremented from 3 to 2
       },
     );
@@ -166,10 +166,10 @@ void main() {
 
         final page = ListViewPage(
           pageId: 'page1',
-          startAfter: '',
-          endBefore: '', // No endBefore constraint
-          lo: 'key2',
-          hi: 'key6',
+          startAfter: 0,
+          endBefore: 0, // No endBefore constraint
+          lo: 2.0,
+          hi: 6.0,
           limit: -5,
           currentSize: 5,
           viewKey: viewKey,
@@ -182,12 +182,12 @@ void main() {
             'TestEntity',
             'actor1',
             'list1',
-            'key2',
+            2.0,
           ),
-        ).thenAnswer((_) async => ListItem('key3', 'actor3'));
+        ).thenAnswer((_) async => ListItem(3.0, 'actor3'));
 
         // Add item after the window
-        final change = ListViewItemAdded('key9', 'actor9');
+        final change = QueryListViewItemAdded(pos: 9.0, refId: 'actor9');
         final changes = await page.handleItemAdded(change);
 
         // Should return 2 changes: old lo removed + new item added
@@ -196,17 +196,17 @@ void main() {
         // First change: old lo (key2) removed (pushed out)
         expect(changes[0], isA<ListPageItemRemoved>());
         expect((changes[0] as ListPageItemRemoved).pageId, 'page1');
-        expect((changes[0] as ListPageItemRemoved).key, 'key2');
+        expect((changes[0] as ListPageItemRemoved).pos, 2.0);
 
         // Second change: new item added at the end
         expect(changes[1], isA<ListPageItemAdded>());
         expect((changes[1] as ListPageItemAdded).pageId, 'page1');
-        expect((changes[1] as ListPageItemAdded).key, 'key9');
-        expect((changes[1] as ListPageItemAdded).value, 'actor9');
+        expect((changes[1] as ListPageItemAdded).pos, 9.0);
+        expect((changes[1] as ListPageItemAdded).refId, 'actor9');
 
         // Verify page boundaries shifted
-        expect(page.lo, 'key3'); // lo shifted from key2 to key3
-        expect(page.hi, 'key9'); // hi shifted from key6 to key9
+        expect(page.lo, 3.0); // lo shifted from key2 to key3
+        expect(page.hi, 9.0); // hi shifted from key6 to key9
         expect(page.currentSize, 5); // size maintained (still full)
       },
     );
@@ -219,10 +219,10 @@ void main() {
 
         final page = ListViewPage(
           pageId: 'page1',
-          startAfter: '',
-          endBefore: 'key99',
-          lo: 'key10',
-          hi: 'key50',
+          startAfter: 0,
+          endBefore: 99.0,
+          lo: 10.0,
+          hi: 50.0,
           limit: -5,
           currentSize: 5,
           viewKey: viewKey,
@@ -235,23 +235,23 @@ void main() {
             'TestEntity',
             'actor1',
             'list1',
-            'key10',
+            10.0,
           ),
-        ).thenAnswer((_) async => ListItem('key15', 'actor15'));
+        ).thenAnswer((_) async => ListItem(15.0, 'actor15'));
 
         // Add item after hi but before endBefore
-        final change = ListViewItemAdded('key60', 'actor60');
+        final change = QueryListViewItemAdded(pos: 60.0, refId: 'actor60');
         final changes = await page.handleItemAdded(change);
 
         // Should return 2 changes: pushout
         expect(changes.length, 2);
         expect(changes[0], isA<ListPageItemRemoved>());
-        expect((changes[0] as ListPageItemRemoved).key, 'key10');
+        expect((changes[0] as ListPageItemRemoved).pos, 10.0);
         expect(changes[1], isA<ListPageItemAdded>());
-        expect((changes[1] as ListPageItemAdded).key, 'key60');
+        expect((changes[1] as ListPageItemAdded).pos, 60.0);
 
-        expect(page.lo, 'key15');
-        expect(page.hi, 'key60');
+        expect(page.lo, 15.0);
+        expect(page.hi, 60.0);
       },
     );
 
@@ -261,10 +261,10 @@ void main() {
 
       final page = ListViewPage(
         pageId: 'page1',
-        startAfter: '',
-        endBefore: 'key50',
-        lo: 'key10',
-        hi: 'key40',
+        startAfter: 0,
+        endBefore: 50.0,
+        lo: 10.0,
+        hi: 40.0,
         limit: -5,
         currentSize: 5,
         viewKey: viewKey,
@@ -272,15 +272,15 @@ void main() {
       );
 
       // Add item beyond endBefore constraint
-      final change = ListViewItemAdded('key60', 'actor60');
+      final change = QueryListViewItemAdded(pos: 60.0, refId: 'actor60');
       final changes = await page.handleItemAdded(change);
 
       // Should return empty (item beyond endBefore boundary)
       expect(changes, isEmpty);
 
       // Page state unchanged
-      expect(page.lo, 'key10');
-      expect(page.hi, 'key40');
+      expect(page.lo, 10.0);
+      expect(page.hi, 40.0);
       expect(page.currentSize, 5);
     });
 
@@ -290,10 +290,10 @@ void main() {
 
       final page = ListViewPage(
         pageId: 'page1',
-        startAfter: '',
-        endBefore: '',
-        lo: 'key2',
-        hi: 'key6',
+        startAfter: 0,
+        endBefore: 0,
+        lo: 2.0,
+        hi: 6.0,
         limit: 5, // Forward pagination (positive limit)
         currentSize: 5,
         viewKey: viewKey,
@@ -301,15 +301,15 @@ void main() {
       );
 
       // Add item after the window
-      final change = ListViewItemAdded('key9', 'actor9');
+      final change = QueryListViewItemAdded(pos: 9.0, refId: 'actor9');
       final changes = await page.handleItemAdded(change);
 
       // Forward pages don't pushout, they just ignore when full
       expect(changes, isEmpty);
 
       // Page state unchanged
-      expect(page.lo, 'key2');
-      expect(page.hi, 'key6');
+      expect(page.lo, 2.0);
+      expect(page.hi, 6.0);
       expect(page.currentSize, 5);
     });
   });
@@ -321,10 +321,10 @@ void main() {
 
       final page = ListViewPage(
         pageId: 'page1',
-        startAfter: '',
-        endBefore: '',
-        lo: 'key5',
-        hi: 'key9',
+        startAfter: 0,
+        endBefore: 0,
+        lo: 5.0,
+        hi: 9.0,
         limit: 5,
         currentSize: 3,
         viewKey: viewKey,
@@ -332,7 +332,7 @@ void main() {
       );
 
       // Remove item before lo
-      final change = ListViewItemRemoved('key2');
+      final change = QueryListViewItemRemoved(pos: 2.0, refId: 'actor2');
       final changes = await page.handleItemRemoved(change);
 
       expect(changes, isEmpty);
@@ -345,23 +345,23 @@ void main() {
 
       final page = ListViewPage(
         pageId: 'page1',
-        startAfter: '',
-        endBefore: '',
-        lo: 'key2',
-        hi: 'key5',
+        startAfter: 0,
+        endBefore: 0,
+        lo: 2.0,
+        hi: 5.0,
         limit: 10,
         currentSize: 3,
         viewKey: viewKey,
         viewStore: mockViewStore,
       );
 
-      final change = ListViewItemAdded('key3', 'actor3');
+      final change = QueryListViewItemAdded(pos: 3.0, refId: 'actor3');
       final changes = await page.handleItemAdded(change);
 
       // Should return 1 change: item added
       expect(changes.length, 1);
       expect(changes[0], isA<ListPageItemAdded>());
-      expect((changes[0] as ListPageItemAdded).key, 'key3');
+      expect((changes[0] as ListPageItemAdded).pos, 3.0);
 
       expect(page.currentSize, 4); // incremented
     });
@@ -372,10 +372,10 @@ void main() {
 
       final page = ListViewPage(
         pageId: 'page1',
-        startAfter: '',
-        endBefore: '',
-        lo: 'key2',
-        hi: 'key6',
+        startAfter: 0,
+        endBefore: 0,
+        lo: 2.0,
+        hi: 6.0,
         limit: -5,
         currentSize: 5,
         viewKey: viewKey,
@@ -388,11 +388,11 @@ void main() {
           'TestEntity',
           'actor1',
           'list1',
-          'key2',
+          2.0,
         ),
       ).thenAnswer((_) async => null);
 
-      final change = ListViewItemAdded('key9', 'actor9');
+      final change = QueryListViewItemAdded(pos: 9.0, refId: 'actor9');
       final changes = await page.handleItemAdded(change);
 
       // Should return empty (can't pushout without finding next item)
@@ -409,10 +409,10 @@ void main() {
 
         final page = ListViewPage(
           pageId: 'page1',
-          startAfter: '',
-          endBefore: '',
-          lo: 'key2',
-          hi: 'key9',
+          startAfter: 0,
+          endBefore: 0,
+          lo: 2.0,
+          hi: 9.0,
           limit: 10,
           currentSize: 5,
           viewKey: viewKey,
@@ -429,8 +429,8 @@ void main() {
 
         // Verify page state: currentSize reset, boundaries preserved
         expect(page.currentSize, 0);
-        expect(page.lo, 'key2');
-        expect(page.hi, 'key9');
+        expect(page.lo, 2.0);
+        expect(page.hi, 9.0);
       },
     );
 
@@ -440,10 +440,10 @@ void main() {
 
       final page = ListViewPage(
         pageId: 'page1',
-        startAfter: '',
-        endBefore: '',
-        lo: 'key2',
-        hi: 'key9',
+        startAfter: 0,
+        endBefore: 0,
+        lo: 2.0,
+        hi: 9.0,
         limit: 10,
         currentSize: 0,
         viewKey: viewKey,
@@ -460,71 +460,8 @@ void main() {
 
       // Verify page state unchanged
       expect(page.currentSize, 0);
-      expect(page.lo, 'key2');
-      expect(page.hi, 'key9');
-    });
-  });
-
-  group('Real-time sync - AddIfAbsent scenarios', () {
-    test('item added if absent behaves like normal add', () async {
-      final mockViewStore = MockViewStore();
-      final viewKey = ViewKey('TestEntity', 'actor1', 'list1');
-
-      final page = ListViewPage(
-        pageId: 'page1',
-        startAfter: '',
-        endBefore: '',
-        lo: 'key2',
-        hi: 'key5',
-        limit: 10,
-        currentSize: 3,
-        viewKey: viewKey,
-        viewStore: mockViewStore,
-      );
-
-      final change = ListViewItemAddedIfAbsent('key3', 'actor3');
-      final changes = await page.handleItemAddedIfAbsent(change);
-
-      // Should return single ListPageItemAdded change
-      expect(changes.length, 1);
-      expect(changes[0], isA<ListPageItemAdded>());
-      expect((changes[0] as ListPageItemAdded).pageId, 'page1');
-      expect((changes[0] as ListPageItemAdded).key, 'key3');
-      expect((changes[0] as ListPageItemAdded).value, 'actor3');
-
-      // Verify page state updated
-      expect(page.currentSize, 4);
-      expect(page.lo, 'key2');
-      expect(page.hi, 'key5');
-    });
-
-    test('item added if absent on full page behaves like normal add', () async {
-      final mockViewStore = MockViewStore();
-      final viewKey = ViewKey('TestEntity', 'actor1', 'list1');
-
-      final page = ListViewPage(
-        pageId: 'page1',
-        startAfter: '',
-        endBefore: '',
-        lo: 'key2',
-        hi: 'key6',
-        limit: 5,
-        currentSize: 5,
-        viewKey: viewKey,
-        viewStore: mockViewStore,
-      );
-
-      // Add item after the window on a full page
-      final change = ListViewItemAddedIfAbsent('key9', 'actor9');
-      final changes = await page.handleItemAddedIfAbsent(change);
-
-      // Should return empty (full forward page ignores items after window)
-      expect(changes, isEmpty);
-
-      // Verify page state unchanged
-      expect(page.currentSize, 5);
-      expect(page.lo, 'key2');
-      expect(page.hi, 'key6');
+      expect(page.lo, 2.0);
+      expect(page.hi, 9.0);
     });
   });
 }
