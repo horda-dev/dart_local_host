@@ -167,7 +167,9 @@ abstract class MessageStore {
 
   void publishProcessResult(ProcessResultEnvelop result);
 
-  void publishChange(ChangeEnvelop change);
+  void publishViewChange(ChangeEnvelop change);
+
+  void publishQueryChange(ChangeEnvelop change);
 
   Stream<EventEnvelop> dispatchedEvents();
 
@@ -188,14 +190,16 @@ abstract class MessageStore {
     required String startAt,
   });
 
-  Stream<ChangeEnvelop> changes({
+  Stream<ChangeEnvelop> queryChanges({
     required String entityName,
     required EntityId id,
     required String name,
     String startAt,
   });
 
-  Stream<ChangeEnvelop> get allChanges;
+  Stream<ChangeEnvelop> get allQueryChanges;
+
+  Stream<ChangeEnvelop> get allViewChanges;
 }
 
 class MemoryMessageStore implements MessageStore {
@@ -585,13 +589,23 @@ class MemoryMessageStore implements MessageStore {
   }
 
   @override
-  void publishChange(ChangeEnvelop change) {
-    logger.fine('publishing change $change...');
+  void publishViewChange(ChangeEnvelop change) {
+    logger.fine('publishing view change $change...');
 
     _saveChange(change);
-    _changes.add(change);
+    _viewChanges.add(change);
 
-    logger.info('published change $change');
+    logger.info('published view change $change');
+  }
+
+  @override
+  void publishQueryChange(ChangeEnvelop change) {
+    logger.fine('publishing query change $change...');
+
+    _saveChange(change);
+    _queryChanges.add(change);
+
+    logger.info('published query change $change');
   }
 
   @override
@@ -656,9 +670,9 @@ class MemoryMessageStore implements MessageStore {
   }
 
   // startAt is a view state version which
-  // we want to start getting changes at
+  // we want to start getting query changes at
   @override
-  Stream<ChangeEnvelop> changes({
+  Stream<ChangeEnvelop> queryChanges({
     required String entityName,
     required EntityId id,
     required String name,
@@ -681,7 +695,7 @@ class MemoryMessageStore implements MessageStore {
       past = const Stream.empty();
     }
 
-    final future = _changes.stream.where(
+    final future = _queryChanges.stream.where(
       (e) => e.entityName == entityName && e.key == id && e.name == name,
     );
 
@@ -689,8 +703,13 @@ class MemoryMessageStore implements MessageStore {
   }
 
   @override
-  Stream<ChangeEnvelop> get allChanges {
-    return _changes.stream;
+  Stream<ChangeEnvelop> get allQueryChanges {
+    return _queryChanges.stream;
+  }
+
+  @override
+  Stream<ChangeEnvelop> get allViewChanges {
+    return _viewChanges.stream;
   }
 
   String _dispatchEvent(EntityId from, RemoteEvent event) {
@@ -810,7 +829,8 @@ class MemoryMessageStore implements MessageStore {
   final _serviceEvents = StreamController<EventEnvelop>.broadcast();
   final _dispatchedEvents = StreamController<EventEnvelop>.broadcast();
   final _processResults = StreamController<ProcessResultEnvelop>.broadcast();
-  final _changes = StreamController<ChangeEnvelop>.broadcast();
+  final _viewChanges = StreamController<ChangeEnvelop>.broadcast();
+  final _queryChanges = StreamController<ChangeEnvelop>.broadcast();
 }
 
 abstract class ViewStore {
@@ -879,11 +899,14 @@ const kViewCacheByCountCondition = 10;
 const kViewCacheByTimeCondition = Duration(seconds: 2);
 
 class MemoryViewStore implements ViewStore {
-  MemoryViewStore(this.snapStore) : logger = Logger('Horda.ViewStore');
+  MemoryViewStore(this.snapStore, this.messageStore)
+    : logger = Logger('Horda.ViewStore');
 
   final Logger logger;
 
   final KeyValueStore snapStore;
+
+  final MessageStore messageStore;
 
   @override
   void startProjectingChanges(Stream<ChangeEnvelop> changes) {
@@ -1159,60 +1182,138 @@ class MemoryViewStore implements ViewStore {
       'Projecting ${env.sourceId}, old ver: ${currentSnap?.changeId}, env ver: ${env.changeId}, count: ${env.changes.length}',
     );
 
-    final newSnap = env.isOverwriting
+    final (newSnap, queryChanges) = env.isOverwriting
         ? _projectLast(currentValue, env)
         : _projectAll(currentValue, env);
 
     await snapStore.set(snapKey, newSnap);
+
+    // Publish query changes to query stream
+    if (queryChanges.isNotEmpty) {
+      messageStore.publishQueryChange(
+        ChangeEnvelop(
+          entityName: env.entityName,
+          changeId: env.changeId,
+          key: env.key,
+          name: env.name,
+          changes: queryChanges,
+        ),
+      );
+    }
   }
 
-  ViewSnapshot _projectLast(dynamic currentValue, ChangeEnvelop env) {
+  (ViewSnapshot, List<Change>) _projectLast(
+    dynamic currentValue,
+    ChangeEnvelop env,
+  ) {
     final lastChange = env.changes.last;
 
-    final newValue = _getProjectedValue(currentValue, lastChange);
+    final (newValue, queryChange) = _projectChange(currentValue, lastChange);
     final newChangeId = env.changeId;
 
-    return ViewSnapshot(newValue, newChangeId);
+    return (
+      ViewSnapshot(newValue, newChangeId),
+      [if (queryChange != null) queryChange],
+    );
   }
 
-  ViewSnapshot _projectAll(dynamic currentValue, ChangeEnvelop env) {
+  (ViewSnapshot, List<Change>) _projectAll(
+    dynamic currentValue,
+    ChangeEnvelop env,
+  ) {
     var newValue = currentValue;
     final newChangeId = env.changeId;
+    final queryChanges = <Change>[];
 
     for (final change in env.changes) {
-      newValue = _getProjectedValue(newValue, change);
+      final (projectedValue, queryChange) = _projectChange(newValue, change);
+      newValue = projectedValue;
+
+      // Only add to list if a query change was produced
+      if (queryChange != null) {
+        queryChanges.add(queryChange);
+      }
     }
 
-    return ViewSnapshot(newValue, newChangeId);
+    return (
+      ViewSnapshot(newValue, newChangeId),
+      queryChanges,
+    );
   }
 
-  dynamic _getProjectedValue(dynamic currentValue, Change change) {
+  (dynamic, Change?) _projectChange(dynamic currentValue, Change change) {
     return switch (change) {
-      // Value
-      ValueViewChanged() => change.newValue,
-      // Counter
-      CounterViewIncremented() => currentValue + change.by,
-      CounterViewDecremented() => currentValue - change.by,
-      CounterViewReset() => change.newValue,
-      // Ref
-      RefViewChanged() => change.newValue,
-      // List
-      ListViewItemAdded() =>
-        (currentValue as List<ListItem>)..add(
-          ListItem(_nextListPosition(), change.item),
-        ),
-      ListViewItemRemoved() =>
-        (currentValue as List<ListItem>)
-          ..removeWhere((i) => i.refId == change.item),
-      ListViewCleared() => (currentValue as List<ListItem>)..clear(),
-      // Attr Value
-      RefValueAttributeChanged() => change.newValue,
-      // Attr Counter
-      CounterAttrIncremented() => (currentValue ?? 0) + change.by,
-      CounterAttrDecremented() => (currentValue ?? 0) - change.by,
-      CounterAttrReset() => change.newValue,
+      // Value - pass through
+      ValueViewChanged() => (change.newValue, change),
+
+      // Counter - pass through
+      CounterViewIncremented() => (currentValue + change.by, change),
+      CounterViewDecremented() => (currentValue - change.by, change),
+      CounterViewReset() => (change.newValue, change),
+
+      // Ref - pass through
+      RefViewChanged() => (change.newValue, change),
+
+      // List - CONVERT to query changes
+      ListViewItemAdded() => _projectListItemAdded(currentValue, change),
+      ListViewItemRemoved() => _projectListItemRemoved(currentValue, change),
+      ListViewCleared() => ((currentValue as List<ListItem>)..clear(), change),
+
+      // Attr Value - pass through
+      RefValueAttributeChanged() => (change.newValue, change),
+
+      // Attr Counter - pass through
+      CounterAttrIncremented() => ((currentValue ?? 0) + change.by, change),
+      CounterAttrDecremented() => ((currentValue ?? 0) - change.by, change),
+      CounterAttrReset() => (change.newValue, change),
+
       _ => throw UnsupportedError('Unknown change type ${change.runtimeType}'),
     };
+  }
+
+  (List<ListItem>, Change?) _projectListItemAdded(
+    dynamic currentValue,
+    ListViewItemAdded change,
+  ) {
+    final list = currentValue as List<ListItem>;
+
+    // Check for duplicate refId
+    if (list.any((item) => item.refId == change.item)) {
+      // Duplicate found, no change to apply
+      return (list, null);
+    }
+
+    // Not a duplicate, assign position and add
+    final pos = _nextListPosition();
+    list.add(ListItem(pos, change.item));
+
+    // Convert to query change
+    final queryChange = QueryListViewItemAdded(pos: pos, refId: change.item);
+
+    return (list, queryChange);
+  }
+
+  (List<ListItem>, Change?) _projectListItemRemoved(
+    dynamic currentValue,
+    ListViewItemRemoved change,
+  ) {
+    final list = currentValue as List<ListItem>;
+
+    final removeAtIndex = list.indexWhere((i) => i.refId == change.item);
+    if (removeAtIndex == -1) {
+      // Item not found in list, nothing to remove
+      return (list, null);
+    }
+
+    final removedItem = list.removeAt(removeAtIndex);
+
+    // Convert to query change
+    final queryChange = QueryListViewItemRemoved(
+      pos: removedItem.position,
+      refId: removedItem.refId,
+    );
+
+    return (list, queryChange);
   }
 
   @override
