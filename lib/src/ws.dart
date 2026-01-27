@@ -160,7 +160,7 @@ final class WsSession {
 
         // Create subscription stream starting from changeId
         final stream = system
-            .changes(
+            .queryChanges(
               entityName: viewKey.entityName,
               id: viewKey.entityId,
               name: viewKey.viewName,
@@ -288,7 +288,7 @@ final class WsSession {
       final changeId = '';
 
       final stream = system
-          .changes(
+          .queryChanges(
             entityName: sub.entityName,
             id: sub.id,
             name: sub.name,

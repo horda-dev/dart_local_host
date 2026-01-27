@@ -362,7 +362,7 @@ final class HordaServerSystem {
 
   // startAt is a query change version which
   // we want to start getting events at
-  Stream<ChangeEnvelop> changes({
+  Stream<ChangeEnvelop> queryChanges({
     required String entityName,
     required String id,
     required String name,

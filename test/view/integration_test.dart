@@ -227,22 +227,22 @@ void main() {
     expect(initialView2Actor1.value, 0);
 
     // Subscribe to change streams BEFORE sending commands
-    final actor1View1Changes = system.changes(
+    final actor1View1Changes = system.queryChanges(
       entityName: 'TestEntity',
       id: 'actor1',
       name: 'view1',
     );
-    final actor1View2Changes = system.changes(
+    final actor1View2Changes = system.queryChanges(
       entityName: 'TestEntity',
       id: 'actor1',
       name: 'view2',
     );
-    final actor2View1Changes = system.changes(
+    final actor2View1Changes = system.queryChanges(
       entityName: 'TestEntity',
       id: 'actor2',
       name: 'view1',
     );
-    final actor2View2Changes = system.changes(
+    final actor2View2Changes = system.queryChanges(
       entityName: 'TestEntity',
       id: 'actor2',
       name: 'view2',
