@@ -1419,10 +1419,10 @@ class MemoryViewStore implements ViewStore {
   ) {
     return ListViewPage(
       pageId: Xid().toString(),
-      startAfter: startAfter.toString(),
-      endBefore: endBefore.toString(),
-      lo: pageItems.firstOrNull?.position.toString() ?? '',
-      hi: pageItems.lastOrNull?.position.toString() ?? '',
+      startAfter: startAfter,
+      endBefore: endBefore,
+      lo: pageItems.firstOrNull?.position ?? 0,
+      hi: pageItems.lastOrNull?.position ?? 0,
       limit: limit,
       currentSize: pageItems.length,
       viewKey: viewKey,
