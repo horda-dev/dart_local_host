@@ -51,9 +51,18 @@ class _FakeViewSnapshot_3 extends _i1.SmartFake implements _i3.ViewSnapshot {
 /// See the documentation for Mockito's code generation for more information.
 class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
   @override
-  _i2.Stream<_i3.ChangeEnvelop> get allChanges =>
+  _i2.Stream<_i3.ChangeEnvelop> get allQueryChanges =>
       (super.noSuchMethod(
-            Invocation.getter(#allChanges),
+            Invocation.getter(#allQueryChanges),
+            returnValue: _i2.Stream<_i3.ChangeEnvelop>.empty(),
+            returnValueForMissingStub: _i2.Stream<_i3.ChangeEnvelop>.empty(),
+          )
+          as _i2.Stream<_i3.ChangeEnvelop>);
+
+  @override
+  _i2.Stream<_i3.ChangeEnvelop> get allViewChanges =>
+      (super.noSuchMethod(
+            Invocation.getter(#allViewChanges),
             returnValue: _i2.Stream<_i3.ChangeEnvelop>.empty(),
             returnValueForMissingStub: _i2.Stream<_i3.ChangeEnvelop>.empty(),
           )
@@ -477,8 +486,14 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
       );
 
   @override
-  void publishChange(_i3.ChangeEnvelop? change) => super.noSuchMethod(
-    Invocation.method(#publishChange, [change]),
+  void publishViewChange(_i3.ChangeEnvelop? change) => super.noSuchMethod(
+    Invocation.method(#publishViewChange, [change]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void publishQueryChange(_i3.ChangeEnvelop? change) => super.noSuchMethod(
+    Invocation.method(#publishQueryChange, [change]),
     returnValueForMissingStub: null,
   );
 
@@ -521,14 +536,14 @@ class MockMessageStore extends _i1.Mock implements _i4.MessageStore {
           as Iterable<_i3.ChangeEnvelop>);
 
   @override
-  _i2.Stream<_i3.ChangeEnvelop> changes({
+  _i2.Stream<_i3.ChangeEnvelop> queryChanges({
     required String? entityName,
     required String? id,
     required String? name,
     String? startAt,
   }) =>
       (super.noSuchMethod(
-            Invocation.method(#changes, [], {
+            Invocation.method(#queryChanges, [], {
               #entityName: entityName,
               #id: id,
               #name: name,

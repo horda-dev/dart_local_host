@@ -73,7 +73,7 @@ void main() {
 
     expect(
       change1,
-      TypeMatcher<ListViewItemAdded>().having((e) => e.value, 'value', 'a1'),
+      TypeMatcher<ListViewItemAdded>().having((e) => e.item, 'item', 'a1'),
     );
 
     // After getting changes, they should be cleared
@@ -85,8 +85,8 @@ void main() {
     expect(
       change2,
       TypeMatcher<ListViewItemRemoved>().having(
-        (e) => e.key,
-        'key',
+        (e) => e.item,
+        'item',
         'a2',
       ),
     );

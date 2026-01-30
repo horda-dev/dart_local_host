@@ -56,13 +56,10 @@ class ListPageManager {
     for (final change in env.changes) {
       for (final page in pages) {
         final pageSyncChanges = switch (change) {
-          ListViewItemAdded() => await page.handleItemAdded(
+          QueryListViewItemAdded() => await page.handleItemAdded(
             change,
           ),
-          ListViewItemAddedIfAbsent() => await page.handleItemAddedIfAbsent(
-            change,
-          ),
-          ListViewItemRemoved() => await page.handleItemRemoved(
+          QueryListViewItemRemoved() => await page.handleItemRemoved(
             change,
           ),
           ListViewCleared() => page.handleCleared(

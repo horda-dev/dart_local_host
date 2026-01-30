@@ -209,14 +209,14 @@ class MockViewStore extends _i1.Mock implements _i3.ViewStore {
     String? entityName,
     String? entityId,
     String? viewName,
-    String? afterKey,
+    double? afterPos,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getNextListItem, [
               entityName,
               entityId,
               viewName,
-              afterKey,
+              afterPos,
             ]),
             returnValue: _i4.Future<_i2.ListItem?>.value(),
             returnValueForMissingStub: _i4.Future<_i2.ListItem?>.value(),
@@ -228,14 +228,14 @@ class MockViewStore extends _i1.Mock implements _i3.ViewStore {
     String? entityName,
     String? entityId,
     String? viewName,
-    String? beforeKey,
+    double? beforePos,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getPreviousListItem, [
               entityName,
               entityId,
               viewName,
-              beforeKey,
+              beforePos,
             ]),
             returnValue: _i4.Future<_i2.ListItem?>.value(),
             returnValueForMissingStub: _i4.Future<_i2.ListItem?>.value(),

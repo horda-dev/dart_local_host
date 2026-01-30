@@ -10,6 +10,20 @@ import 'log.dart';
 import 'process.dart';
 import 'system.dart';
 
+/// Result of getting a range from a list view snapshot.
+/// Contains the list items and the positions for the boundaries.
+class ListViewRange {
+  ListViewRange({
+    required this.items,
+    required this.startAfterPos,
+    required this.endBeforePos,
+  });
+
+  final List<ListItem> items;
+  final double startAfterPos;
+  final double endBeforePos;
+}
+
 /// Key for identifying a view across the system.
 /// Consists of [entityName], [entityId], and [viewName].
 class ViewKey {
@@ -147,7 +161,9 @@ abstract class MessageStore {
 
   void publishProcessResult(ProcessResultEnvelop result);
 
-  void publishChange(ChangeEnvelop change);
+  void publishViewChange(ChangeEnvelop change);
+
+  void publishQueryChange(ChangeEnvelop change);
 
   Stream<EventEnvelop> dispatchedEvents();
 
@@ -168,14 +184,16 @@ abstract class MessageStore {
     required String startAt,
   });
 
-  Stream<ChangeEnvelop> changes({
+  Stream<ChangeEnvelop> queryChanges({
     required String entityName,
     required EntityId id,
     required String name,
     String startAt,
   });
 
-  Stream<ChangeEnvelop> get allChanges;
+  Stream<ChangeEnvelop> get allQueryChanges;
+
+  Stream<ChangeEnvelop> get allViewChanges;
 }
 
 class MemoryMessageStore implements MessageStore {
@@ -565,13 +583,23 @@ class MemoryMessageStore implements MessageStore {
   }
 
   @override
-  void publishChange(ChangeEnvelop change) {
-    logger.fine('publishing change $change...');
+  void publishViewChange(ChangeEnvelop change) {
+    logger.fine('publishing view change $change...');
 
     _saveChange(change);
-    _changes.add(change);
+    _viewChanges.add(change);
 
-    logger.info('published change $change');
+    logger.info('published view change $change');
+  }
+
+  @override
+  void publishQueryChange(ChangeEnvelop change) {
+    logger.fine('publishing query change $change...');
+
+    _saveChange(change);
+    _queryChanges.add(change);
+
+    logger.info('published query change $change');
   }
 
   @override
@@ -636,9 +664,9 @@ class MemoryMessageStore implements MessageStore {
   }
 
   // startAt is a view state version which
-  // we want to start getting changes at
+  // we want to start getting query changes at
   @override
-  Stream<ChangeEnvelop> changes({
+  Stream<ChangeEnvelop> queryChanges({
     required String entityName,
     required EntityId id,
     required String name,
@@ -661,7 +689,7 @@ class MemoryMessageStore implements MessageStore {
       past = const Stream.empty();
     }
 
-    final future = _changes.stream.where(
+    final future = _queryChanges.stream.where(
       (e) => e.entityName == entityName && e.key == id && e.name == name,
     );
 
@@ -669,8 +697,13 @@ class MemoryMessageStore implements MessageStore {
   }
 
   @override
-  Stream<ChangeEnvelop> get allChanges {
-    return _changes.stream;
+  Stream<ChangeEnvelop> get allQueryChanges {
+    return _queryChanges.stream;
+  }
+
+  @override
+  Stream<ChangeEnvelop> get allViewChanges {
+    return _viewChanges.stream;
   }
 
   String _dispatchEvent(EntityId from, RemoteEvent event) {
@@ -790,7 +823,8 @@ class MemoryMessageStore implements MessageStore {
   final _serviceEvents = StreamController<EventEnvelop>.broadcast();
   final _dispatchedEvents = StreamController<EventEnvelop>.broadcast();
   final _processResults = StreamController<ProcessResultEnvelop>.broadcast();
-  final _changes = StreamController<ChangeEnvelop>.broadcast();
+  final _viewChanges = StreamController<ChangeEnvelop>.broadcast();
+  final _queryChanges = StreamController<ChangeEnvelop>.broadcast();
 }
 
 abstract class ViewStore {
@@ -831,24 +865,24 @@ abstract class ViewStore {
 
   Future<void> seed(Map<String, dynamic> seed);
 
-  /// Returns the next item in a list view after the given key.
-  /// Returns null if no item exists after the key.
-  /// Items are ordered lexicographically by their keys.
+  /// Returns the next item in a list view after the given position.
+  /// Returns null if no item exists after the position.
+  /// Items are ordered by their position values.
   Future<ListItem?> getNextListItem(
     String entityName,
     EntityId entityId,
     String viewName,
-    String afterKey,
+    double afterPos,
   );
 
-  /// Returns the previous item in a list view before the given key.
-  /// Returns null if no item exists before the key.
-  /// Items are ordered lexicographically by their keys.
+  /// Returns the previous item in a list view before the given position.
+  /// Returns null if no item exists before the position.
+  /// Items are ordered by their position values.
   Future<ListItem?> getPreviousListItem(
     String entityName,
     EntityId entityId,
     String viewName,
-    String beforeKey,
+    double beforePos,
   );
 }
 
@@ -859,11 +893,14 @@ const kViewCacheByCountCondition = 10;
 const kViewCacheByTimeCondition = Duration(seconds: 2);
 
 class MemoryViewStore implements ViewStore {
-  MemoryViewStore(this.snapStore) : logger = Logger('Horda.ViewStore');
+  MemoryViewStore(this.snapStore, this.messageStore)
+    : logger = Logger('Horda.ViewStore');
 
   final Logger logger;
 
   final KeyValueStore snapStore;
+
+  final MessageStore messageStore;
 
   @override
   void startProjectingChanges(Stream<ChangeEnvelop> changes) {
@@ -887,12 +924,11 @@ class MemoryViewStore implements ViewStore {
 
       dynamic snapValue = view.value;
 
-      // Create item keys for RefListView
+      // Create list items with positions for RefListView
       if (view.type == 'RefListView') {
-        snapValue = (view.value as List<String>)
-            .map((v) => ListItem(Xid().toString(), v))
-            // Make sure that assigned value is of type List<ListItem>!
-            // Method map() returns MappedListIterable<String, ListItem>.
+        final items = view.value as List<String>;
+        snapValue = items
+            .map((refId) => ListItem(_nextListPosition(), refId))
             .toList();
       }
 
@@ -1041,7 +1077,7 @@ class MemoryViewStore implements ViewStore {
       } else if (view is ListQueryDef) {
         _throwIfInvalidPaginationParams(view);
 
-        final pageItems = _getRangeFromRefListSnapshot(
+        final range = _getRangeFromRefListSnapshot(
           viewSnap,
           view.startAfter,
           view.endBefore,
@@ -1053,10 +1089,10 @@ class MemoryViewStore implements ViewStore {
         if (pages != null) {
           final page = _createListPage(
             ViewKey(query.entityName, actorId, name),
-            view.startAfter,
-            view.endBefore,
+            range.startAfterPos,
+            range.endBeforePos,
             view.limit,
-            pageItems,
+            range.items,
           );
           pageId = page.pageId;
           pages.add(page);
@@ -1066,8 +1102,8 @@ class MemoryViewStore implements ViewStore {
         // maps itemId to {'attrName': attrValue}
         final allAttrs = <String, Map<String, dynamic>>{};
 
-        for (final pageItem in pageItems) {
-          final itemId = pageItem.value;
+        for (final pageItem in range.items) {
+          final itemId = pageItem.refId;
           // getting attr values for item id
           final itemAttrs = <String, dynamic>{};
           for (final attrName in view.attrs) {
@@ -1093,7 +1129,7 @@ class MemoryViewStore implements ViewStore {
           ListQueryResultBuilder(
             entry.key,
             allAttrs,
-            ViewSnapshot(pageItems, viewSnap.changeId),
+            ViewSnapshot(range.items, viewSnap.changeId),
             items,
             pageId,
           ),
@@ -1140,73 +1176,138 @@ class MemoryViewStore implements ViewStore {
       'Projecting ${env.sourceId}, old ver: ${currentSnap?.changeId}, env ver: ${env.changeId}, count: ${env.changes.length}',
     );
 
-    final newSnap = env.isOverwriting
+    final (newSnap, queryChanges) = env.isOverwriting
         ? _projectLast(currentValue, env)
         : _projectAll(currentValue, env);
 
     await snapStore.set(snapKey, newSnap);
+
+    // Publish query changes to query stream
+    if (queryChanges.isNotEmpty) {
+      messageStore.publishQueryChange(
+        ChangeEnvelop(
+          entityName: env.entityName,
+          changeId: env.changeId,
+          key: env.key,
+          name: env.name,
+          changes: queryChanges,
+        ),
+      );
+    }
   }
 
-  ViewSnapshot _projectLast(dynamic currentValue, ChangeEnvelop env) {
+  (ViewSnapshot, List<Change>) _projectLast(
+    dynamic currentValue,
+    ChangeEnvelop env,
+  ) {
     final lastChange = env.changes.last;
 
-    final newValue = _getProjectedValue(currentValue, lastChange);
+    final (newValue, queryChange) = _projectChange(currentValue, lastChange);
     final newChangeId = env.changeId;
 
-    return ViewSnapshot(newValue, newChangeId);
+    return (
+      ViewSnapshot(newValue, newChangeId),
+      [if (queryChange != null) queryChange],
+    );
   }
 
-  ViewSnapshot _projectAll(dynamic currentValue, ChangeEnvelop env) {
+  (ViewSnapshot, List<Change>) _projectAll(
+    dynamic currentValue,
+    ChangeEnvelop env,
+  ) {
     var newValue = currentValue;
     final newChangeId = env.changeId;
+    final queryChanges = <Change>[];
 
     for (final change in env.changes) {
-      newValue = _getProjectedValue(newValue, change);
+      final (projectedValue, queryChange) = _projectChange(newValue, change);
+      newValue = projectedValue;
+
+      // Only add to list if a query change was produced
+      if (queryChange != null) {
+        queryChanges.add(queryChange);
+      }
     }
 
-    return ViewSnapshot(newValue, newChangeId);
+    return (
+      ViewSnapshot(newValue, newChangeId),
+      queryChanges,
+    );
   }
 
-  dynamic _getProjectedValue(dynamic currentValue, Change change) {
+  (dynamic, Change?) _projectChange(dynamic currentValue, Change change) {
     return switch (change) {
-      // Value
-      ValueViewChanged() => change.newValue,
-      // Counter
-      CounterViewIncremented() => currentValue + change.by,
-      CounterViewDecremented() => currentValue - change.by,
-      CounterViewReset() => change.newValue,
-      // Ref
-      RefViewChanged() => change.newValue,
-      // List
-      ListViewItemAdded() =>
-        (currentValue as List<ListItem>)..add(
-          ListItem(change.key, change.value),
-        ),
-      ListViewItemAddedIfAbsent() => () {
-        currentValue as List<ListItem>;
-        final contains =
-            currentValue.indexWhere((i) => i.value == change.value) > -1;
+      // Value - pass through
+      ValueViewChanged() => (change.newValue, change),
 
-        if (contains) {
-          return currentValue;
-        }
+      // Counter - pass through
+      CounterViewIncremented() => (currentValue + change.by, change),
+      CounterViewDecremented() => (currentValue - change.by, change),
+      CounterViewReset() => (change.newValue, change),
 
-        return currentValue..add(
-          ListItem(change.key, change.value),
-        );
-      }(),
-      ListViewItemRemoved() =>
-        (currentValue as List<ListItem>)
-          ..removeWhere((i) => i.key == change.key),
-      ListViewCleared() => (currentValue as List<ListItem>)..clear(),
-      // Attr Value
-      RefValueAttributeChanged() => change.newValue,
-      // Attr Counter
-      CounterAttrIncremented() => (currentValue ?? 0) + change.by,
-      CounterAttrDecremented() => (currentValue ?? 0) - change.by,
-      CounterAttrReset() => change.newValue,
+      // Ref - pass through
+      RefViewChanged() => (change.newValue, change),
+
+      // List - CONVERT to query changes
+      ListViewItemAdded() => _projectListItemAdded(currentValue, change),
+      ListViewItemRemoved() => _projectListItemRemoved(currentValue, change),
+      ListViewCleared() => ((currentValue as List<ListItem>)..clear(), change),
+
+      // Attr Value - pass through
+      RefValueAttributeChanged() => (change.newValue, change),
+
+      // Attr Counter - pass through
+      CounterAttrIncremented() => ((currentValue ?? 0) + change.by, change),
+      CounterAttrDecremented() => ((currentValue ?? 0) - change.by, change),
+      CounterAttrReset() => (change.newValue, change),
+
       _ => throw UnsupportedError('Unknown change type ${change.runtimeType}'),
     };
+  }
+
+  (List<ListItem>, Change?) _projectListItemAdded(
+    dynamic currentValue,
+    ListViewItemAdded change,
+  ) {
+    final list = currentValue as List<ListItem>;
+
+    // Check for duplicate refId
+    if (list.any((item) => item.refId == change.item)) {
+      // Duplicate found, no change to apply
+      return (list, null);
+    }
+
+    // Not a duplicate, assign position and add
+    final pos = _nextListPosition();
+    list.add(ListItem(pos, change.item));
+
+    // Convert to query change
+    final queryChange = QueryListViewItemAdded(pos: pos, refId: change.item);
+
+    return (list, queryChange);
+  }
+
+  (List<ListItem>, Change?) _projectListItemRemoved(
+    dynamic currentValue,
+    ListViewItemRemoved change,
+  ) {
+    final list = currentValue as List<ListItem>;
+
+    final removeAtIndex = list.indexWhere((i) => i.refId == change.item);
+    if (removeAtIndex == -1) {
+      // Item not found in list, nothing to remove
+      return (list, null);
+    }
+
+    final removedItem = list.removeAt(removeAtIndex);
+
+    // Convert to query change
+    final queryChange = QueryListViewItemRemoved(
+      pos: removedItem.position,
+      refId: removedItem.refId,
+    );
+
+    return (list, queryChange);
   }
 
   @override
@@ -1214,14 +1315,14 @@ class MemoryViewStore implements ViewStore {
     String entityName,
     EntityId entityId,
     String viewName,
-    String afterKey,
+    double afterPos,
   ) async {
     final snapshot = await viewSnapshot(entityName, entityId, viewName);
     final items = snapshot.value as List<ListItem>;
 
     // To get the "right" neighbour - search in forward direction, from 0 to items.length.
     // Do not use "lastIndexWhere" - you'll always get the last item in the list.
-    final nextIndex = items.indexWhere((i) => i.key > afterKey);
+    final nextIndex = items.indexWhere((i) => i.position > afterPos);
 
     if (nextIndex == -1) {
       return null;
@@ -1235,14 +1336,14 @@ class MemoryViewStore implements ViewStore {
     String entityName,
     EntityId entityId,
     String viewName,
-    String beforeKey,
+    double beforePos,
   ) async {
     final snapshot = await viewSnapshot(entityName, entityId, viewName);
     final items = snapshot.value as List<ListItem>;
 
     // To get the "left" neighbour - search in reverse, from items.length to 0.
     // Do not use "firstIndexWhere" - you'll always get the first item in the list.
-    final previousIndex = items.lastIndexWhere((i) => i.key < beforeKey);
+    final previousIndex = items.lastIndexWhere((i) => i.position < beforePos);
 
     if (previousIndex == -1) {
       return null;
@@ -1251,7 +1352,7 @@ class MemoryViewStore implements ViewStore {
     return items[previousIndex];
   }
 
-  List<ListItem> _getRangeFromRefListSnapshot(
+  ListViewRange _getRangeFromRefListSnapshot(
     ViewSnapshot snap,
     String startAfter,
     String endBefore,
@@ -1259,21 +1360,25 @@ class MemoryViewStore implements ViewStore {
   ) {
     final list = snap.value as List<ListItem>;
 
-    // Find start index (exclusive of startAfter)
+    // Find start position and index (exclusive of startAfter)
     int startIndex = 0;
+    double startAfterPos = 0.0;
     if (startAfter.isNotEmpty) {
-      final afterIndex = list.indexWhere((item) => item.key == startAfter);
+      final afterIndex = list.indexWhere((item) => item.refId == startAfter);
       if (afterIndex != -1) {
         startIndex = afterIndex + 1;
+        startAfterPos = list[afterIndex].position;
       }
     }
 
-    // Find end index (exclusive of endBefore)
+    // Find end position and index (exclusive of endBefore)
     int endIndex = list.length;
+    double endBeforePos = 0.0;
     if (endBefore.isNotEmpty) {
-      final beforeIndex = list.indexWhere((item) => item.key == endBefore);
+      final beforeIndex = list.indexWhere((item) => item.refId == endBefore);
       if (beforeIndex != -1) {
         endIndex = beforeIndex;
+        endBeforePos = list[beforeIndex].position;
       }
     }
 
@@ -1292,13 +1397,17 @@ class MemoryViewStore implements ViewStore {
       }
     }
 
-    return result;
+    return ListViewRange(
+      items: result,
+      startAfterPos: startAfterPos,
+      endBeforePos: endBeforePos,
+    );
   }
 
   ListViewPage _createListPage(
     ViewKey viewKey,
-    String startAfter,
-    String endBefore,
+    double startAfter,
+    double endBefore,
     int limit,
     List<ListItem> pageItems,
   ) {
@@ -1306,8 +1415,8 @@ class MemoryViewStore implements ViewStore {
       pageId: Xid().toString(),
       startAfter: startAfter,
       endBefore: endBefore,
-      lo: pageItems.firstOrNull?.key ?? '',
-      hi: pageItems.lastOrNull?.key ?? '',
+      lo: pageItems.firstOrNull?.position ?? 0,
+      hi: pageItems.lastOrNull?.position ?? 0,
       limit: limit,
       currentSize: pageItems.length,
       viewKey: viewKey,
@@ -1338,6 +1447,12 @@ class MemoryViewStore implements ViewStore {
   }
 
   StreamSubscription<ChangeEnvelop>? _viewUpdaterSub;
+
+  /// Counter for generating list item positions
+  double _listPositionCounter = 0.0;
+
+  /// Generates a new unique position value for list items.
+  double _nextListPosition() => ++_listPositionCounter;
 }
 
 abstract class KeyValueStore {

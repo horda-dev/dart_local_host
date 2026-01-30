@@ -24,6 +24,7 @@ final class HordaServerSystem {
 
     viewStore = MemoryViewStore(
       keyValueStore,
+      messageStore,
     );
 
     httpServer = HttpServer(
@@ -54,7 +55,7 @@ final class HordaServerSystem {
 
     await keyValueStore.start();
 
-    viewStore.startProjectingChanges(messageStore.allChanges);
+    viewStore.startProjectingChanges(messageStore.allViewChanges);
 
     httpServer.start();
 
@@ -345,13 +346,13 @@ final class HordaServerSystem {
     messageStore.publishServiceEvent(env);
   }
 
-  void publishChange(ChangeEnvelop env) {
-    messageStore.publishChange(env);
+  void publishViewChange(ChangeEnvelop env) {
+    messageStore.publishViewChange(env);
   }
 
-  void publishManyChanges(Iterable<ChangeEnvelop> changes) {
+  void publishManyViewChanges(Iterable<ChangeEnvelop> changes) {
     for (final change in changes) {
-      messageStore.publishChange(change);
+      messageStore.publishViewChange(change);
     }
   }
 
@@ -359,15 +360,15 @@ final class HordaServerSystem {
     messageStore.publishProcessResult(env);
   }
 
-  // startAt is a view state version which
+  // startAt is a query change version which
   // we want to start getting events at
-  Stream<ChangeEnvelop> changes({
+  Stream<ChangeEnvelop> queryChanges({
     required String entityName,
     required String id,
     required String name,
     String startAt = '',
   }) {
-    return messageStore.changes(
+    return messageStore.queryChanges(
       entityName: entityName,
       id: id,
       name: name,
@@ -417,7 +418,7 @@ final class HordaServerTestSystem extends HordaServerSystem {
 
   @override
   Future<void> start() async {
-    viewStore.startProjectingChanges(messageStore.allChanges);
+    viewStore.startProjectingChanges(messageStore.allViewChanges);
 
     logger.info('server test system started');
   }

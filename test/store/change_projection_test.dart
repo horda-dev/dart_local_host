@@ -4,17 +4,23 @@ import 'dart:async';
 
 import 'package:horda_local_host/horda_local_host.dart';
 import 'package:horda_server/horda_server.dart';
+import 'package:mockito/annotations.dart';
 import 'package:test/test.dart';
+
+@GenerateNiceMocks([MockSpec<MessageStore>()])
+import 'change_projection_test.mocks.dart';
 
 void main() {
   group('MemoryViewStore change projection', () {
     late MemKeyValueStore snapStore;
+    late MessageStore messageStore;
     late MemoryViewStore viewStore;
     late StreamController<ChangeEnvelop> changeStream;
 
     setUp(() {
       snapStore = MemKeyValueStore();
-      viewStore = MemoryViewStore(snapStore);
+      messageStore = MockMessageStore();
+      viewStore = MemoryViewStore(snapStore, messageStore);
       changeStream = StreamController<ChangeEnvelop>();
 
       viewStore.startProjectingChanges(changeStream.stream);
@@ -282,7 +288,7 @@ void main() {
         await snapStore.set(
           'TestEntity/actor1/list1',
           ViewSnapshot([
-            ListItem('key1', 'actor2'),
+            ListItem(0.0, 'actor2'),
           ], '0'),
         );
 
@@ -291,7 +297,7 @@ void main() {
           key: 'actor1',
           name: 'list1',
           changeId: '1',
-          changes: [ListViewItemAdded('key2', 'actor3')],
+          changes: [ListViewItemAdded('actor3')],
         );
 
         changeStream.add(change);
@@ -304,78 +310,20 @@ void main() {
         );
         final list = snapshot.value as List<ListItem>;
         expect(list.length, 2);
-        expect(list[0].key, 'key1');
-        expect(list[0].value, 'actor2');
-        expect(list[1].key, 'key2');
-        expect(list[1].value, 'actor3');
+        expect(list[0].position, 0.0);
+        expect(list[0].refId, 'actor2');
+        expect(list[1].position, 1.0);
+        expect(list[1].refId, 'actor3');
         expect(snapshot.changeId, '1');
-      });
-
-      test('ListViewItemAddedIfAbsent adds when not present', () async {
-        await snapStore.set(
-          'TestEntity/actor1/list1',
-          ViewSnapshot([
-            ListItem('key1', 'actor2'),
-          ], '0'),
-        );
-
-        final change = ChangeEnvelop(
-          entityName: 'TestEntity',
-          key: 'actor1',
-          name: 'list1',
-          changeId: '1',
-          changes: [ListViewItemAddedIfAbsent('key2', 'actor3')],
-        );
-
-        changeStream.add(change);
-        await Future.delayed(Duration(milliseconds: 10));
-
-        final snapshot = await viewStore.viewSnapshot(
-          'TestEntity',
-          'actor1',
-          'list1',
-        );
-        final list = snapshot.value as List<ListItem>;
-        expect(list.length, 2);
-        expect(list[1].value, 'actor3');
-      });
-
-      test('ListViewItemAddedIfAbsent does not add duplicate', () async {
-        await snapStore.set(
-          'TestEntity/actor1/list1',
-          ViewSnapshot([
-            ListItem('key1', 'actor2'),
-            ListItem('key2', 'actor3'),
-          ], '0'),
-        );
-
-        final change = ChangeEnvelop(
-          entityName: 'TestEntity',
-          key: 'actor1',
-          name: 'list1',
-          changeId: '1',
-          changes: [ListViewItemAddedIfAbsent('key3', 'actor3')],
-        );
-
-        changeStream.add(change);
-        await Future.delayed(Duration(milliseconds: 10));
-
-        final snapshot = await viewStore.viewSnapshot(
-          'TestEntity',
-          'actor1',
-          'list1',
-        );
-        final list = snapshot.value as List<ListItem>;
-        expect(list.length, 2); // Should not add duplicate
       });
 
       test('ListViewItemRemoved projects correctly', () async {
         await snapStore.set(
           'TestEntity/actor1/list1',
           ViewSnapshot([
-            ListItem('key1', 'actor2'),
-            ListItem('key2', 'actor3'),
-            ListItem('key3', 'actor4'),
+            ListItem(0.0, 'actor2'),
+            ListItem(1.0, 'actor3'),
+            ListItem(2.0, 'actor4'),
           ], '0'),
         );
 
@@ -384,7 +332,7 @@ void main() {
           key: 'actor1',
           name: 'list1',
           changeId: '1',
-          changes: [ListViewItemRemoved('key2')],
+          changes: [ListViewItemRemoved('actor3')],
         );
 
         changeStream.add(change);
@@ -397,16 +345,16 @@ void main() {
         );
         final list = snapshot.value as List<ListItem>;
         expect(list.length, 2);
-        expect(list[0].key, 'key1');
-        expect(list[1].key, 'key3');
+        expect(list[0].position, 0.0);
+        expect(list[1].position, 2.0);
       });
 
       test('ListViewCleared projects correctly', () async {
         await snapStore.set(
           'TestEntity/actor1/list1',
           ViewSnapshot([
-            ListItem('key1', 'actor2'),
-            ListItem('key2', 'actor3'),
+            ListItem(0.0, 'actor2'),
+            ListItem(1.0, 'actor3'),
           ], '0'),
         );
 
@@ -435,7 +383,7 @@ void main() {
         await snapStore.set(
           'TestEntity/actor1/list1',
           ViewSnapshot([
-            ListItem('key1', 'actor2'),
+            ListItem(0.0, 'actor2'),
           ], '0'),
         );
 
@@ -445,9 +393,9 @@ void main() {
           name: 'list1',
           changeId: '1',
           changes: [
-            ListViewItemAdded('key2', 'actor3'),
-            ListViewItemAdded('key3', 'actor4'),
-            ListViewItemRemoved('key1'),
+            ListViewItemAdded('actor3'),
+            ListViewItemAdded('actor4'),
+            ListViewItemRemoved('actor2'),
           ],
         );
 
@@ -461,10 +409,10 @@ void main() {
         );
         final list = snapshot.value as List<ListItem>;
         expect(list.length, 2);
-        expect(list[0].key, 'key2');
-        expect(list[0].value, 'actor3');
-        expect(list[1].key, 'key3');
-        expect(list[1].value, 'actor4');
+        expect(list[0].position, 1.0);
+        expect(list[0].refId, 'actor3');
+        expect(list[1].position, 2.0);
+        expect(list[1].refId, 'actor4');
       });
     });
 

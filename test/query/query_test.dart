@@ -11,7 +11,8 @@ void main() {
   group('query', () {
     test('should run the query', () async {
       final snapStore = MockKeyValueStore();
-      final store = MemoryViewStore(snapStore);
+      final messageStore = MockMessageStore();
+      final store = MemoryViewStore(snapStore, messageStore);
 
       void viewStub(
         String entityName,
@@ -54,8 +55,8 @@ void main() {
       attrStub('actor1', 'actor4', 'attr3', 'a43', 1);
       attrStub('actor1', 'actor4', 'attr4', 44, 1);
       viewStub('TestEntity', 'actor1', 'list1', [
-        ListItem('itemKey3', 'actor3'),
-        ListItem('itemKey4', 'actor4'),
+        ListItem(0.0, 'actor3'),
+        ListItem(1.0, 'actor4'),
       ], 201);
       viewStub('TestEntity', 'actor2', 'view21', 'value21', 21);
       viewStub('TestEntity', 'actor2', 'view22', 'value22', 22);
@@ -122,12 +123,12 @@ void main() {
         })
         ..list('list1', expectedListAttrs, '201', '', (items) {
           items
-            ..item('itemKey3', 'actor3', (rb) {
+            ..item(0.0, 'actor3', (rb) {
               rb
                 ..val('view100', 'value3100', '3100')
                 ..val('view110', 'value3110', '3110');
             })
-            ..item('itemKey4', 'actor4', (rb) {
+            ..item(1.0, 'actor4', (rb) {
               rb
                 ..val('view100', 'value4100', '4100')
                 ..val('view110', 'value4110', '4110');

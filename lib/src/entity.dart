@@ -187,7 +187,7 @@ class EntityHost<S extends EntityState> {
       ),
     );
 
-    _system.publishManyChanges(changes);
+    _system.publishManyViewChanges(changes);
   }
 
   final HordaServerSystem _system;
