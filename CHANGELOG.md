@@ -1,3 +1,11 @@
+## 0.10.0
+
+- **BREAKING**: split change tracking into view and query changes (publishChange → publishViewChange/publishQueryChange)
+- **BREAKING**: use positions instead of keys for RefListView
+- **FIX**: fix items being added to pages which are unaffected by the change
+- **FEAT**: update horda_core to 0.21.0
+- **FEAT**: update horda_server to 0.23.0
+
 ## 0.9.0
 
 - **FEAT**: add process scheduling via EntityContext
