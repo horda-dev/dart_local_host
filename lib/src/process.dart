@@ -30,6 +30,10 @@ class ProcessGroupHost {
     return _funcs._eventFactories.keys.toSet();
   }
 
+  bool canHandle(EventEnvelop env) => _funcs.canHandle(env);
+
+  Future<ProcessResult> handle(EventEnvelop env) => _funcs.handle(env);
+
   void stop() {
     logger.fine('$name host stopping...');
 

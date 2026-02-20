@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:horda_server/horda_server.dart';
 import 'package:logging/logging.dart';
 import 'package:stack_trace/stack_trace.dart';
+import 'package:xid/xid.dart';
 
 import 'change_id.dart';
 import 'entity.dart';
@@ -396,6 +397,38 @@ final class HordaServerSystem {
   /// Events from this stream trigger client and scheduled processes.
   Stream<EventEnvelop> dispatchedEvents() {
     return messageStore.dispatchedEvents();
+  }
+
+  Future<String?> runAuthProcess(AuthEvent authEvent) async {
+    final env = EventEnvelop(
+      actorId: '',
+      eventId: Xid().toString(),
+      commandId: '',
+      type: authEvent.eventType,
+      event: authEvent.payload,
+    );
+
+    for (final processGroup in _processGroupHosts.values) {
+      if (processGroup.canHandle(env)) {
+        final result = await processGroup.handle(env);
+
+        if (result.isError) {
+          throw AuthException('auth process failed: ${result.value}');
+        }
+
+        final userId = result.value;
+
+        if (userId != null && userId.isNotEmpty) {
+          return userId;
+        }
+
+        return null;
+      }
+    }
+
+    throw AuthException(
+      'no process registered for auth event type: ${authEvent.eventType}',
+    );
   }
 
   Stream<ProcessResultEnvelop> processResults({String? dispatchId}) {
