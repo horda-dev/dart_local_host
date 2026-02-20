@@ -1,3 +1,7 @@
+## 0.11.0
+
+- **FEAT**: auth through a process func (client must use horda_client >= 0.30.0)
+
 ## 0.10.0
 
 - **BREAKING**: split change tracking into view and query changes (publishChange → publishViewChange/publishQueryChange)
