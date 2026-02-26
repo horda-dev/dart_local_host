@@ -1,6 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
@@ -9,9 +9,15 @@ import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:xid/xid.dart';
 
-import 'auth.dart';
 import 'system.dart';
 import 'ws.dart';
+
+class AuthEvent {
+  AuthEvent({required this.eventType, required this.payload});
+
+  final String eventType;
+  final Map<String, dynamic> payload;
+}
 
 class HttpServer {
   HttpServer({required this.system});
@@ -19,8 +25,6 @@ class HttpServer {
   final HordaServerSystem system;
 
   final app = Router();
-
-  final auth = Auth();
 
   final logger = Logger('Horda.HttpServer');
 
@@ -33,17 +37,21 @@ class HttpServer {
       String? userId;
 
       try {
-        userId = await processHeaders(request.headers);
-      } on FormatException catch (e) {
-        return Response(400, body: e.toString());
-      } on JWTExpiredException {
-        logger.warning(
-          'Received expired JWT from $senderAddr, incognito connection will be opened.',
+        final authEvent = _extractAuthEvent(request.headers);
+
+        if (authEvent != null) {
+          userId = await system.runAuthProcess(authEvent);
+        }
+      } on AuthException catch (e) {
+        // Status: 401
+        return Response.unauthorized(
+          e.toString(),
         );
-      } on JWTException catch (e) {
-        return Response(403, body: e.toString());
       } catch (e) {
-        return Response(500, body: e.toString());
+        // Status: 500
+        return Response.internalServerError(
+          body: e.toString(),
+        );
       }
 
       final isIncognito = userId == null;
@@ -53,12 +61,6 @@ class HttpServer {
 
       return webSocketHandler(
         pingInterval: Duration(seconds: 5),
-        // Here we specify a list of supported subprotocols.
-        //
-        // Client subprotocols must contain "horda", because if client sends a list of subprotocols
-        // it expects the server to respond with the negotiated subprotocol name.
-        //
-        // "horda" is an arbitrary name, can be anything as long as client and server use a common subprotocol name.
         protocols: ['horda'],
         (WebSocketChannel channel) {
           var session = WsSession(
@@ -81,9 +83,7 @@ class HttpServer {
     });
   }
 
-  /// Processes request headers and returns a userId or null. <br/>
-  /// Throws [FormatException] in case of header format errors. <br/>
-  Future<String?> processHeaders(Map<String, String> headers) async {
+  AuthEvent? _extractAuthEvent(Map<String, String> headers) {
     final protocolsHeader = headers['Sec-WebSocket-Protocol'];
 
     if (protocolsHeader == null) {
@@ -92,15 +92,48 @@ class HttpServer {
 
     final values = protocolsHeader.split(',');
 
-    // Headers should be in the following order: horda, API_KEY, FIREBASE_ID_TOKEN
+    // Headers should be in the following order: horda, API_KEY, AUTH_EVENT_BASE64
     if (values.length < 3) {
       return null;
     }
 
-    final firebaseIdToken = values[2].trim();
+    final authPayload = values[2].trim();
 
-    final userId = await auth.extractUserId(firebaseIdToken);
+    if (authPayload.isEmpty) {
+      return null;
+    }
 
-    return userId;
+    try {
+      final decoded = utf8.decode(
+        base64Url.decode(
+          base64Url.normalize(
+            authPayload,
+          ),
+        ),
+      );
+
+      final json = jsonDecode(decoded) as Map<String, dynamic>;
+
+      return AuthEvent(
+        eventType: json['eventType'] as String,
+        payload: json['payload'] as Map<String, dynamic>,
+      );
+    } catch (e) {
+      logger.warning('Failed to decode auth event: $e');
+      throw AuthException(
+        e.toString(),
+      );
+    }
+  }
+}
+
+class AuthException implements Exception {
+  const AuthException(this.message);
+
+  final String message;
+
+  @override
+  String toString() {
+    return message;
   }
 }
