@@ -1,3 +1,7 @@
+## 0.11.1
+
+- **FIX**: replace stream timeouts with warning logs to prevent server crash on long running processes and command handlers
+
 ## 0.11.0
 
 - **FEAT**: auth through a process func (client must use horda_client >= 0.30.0)
