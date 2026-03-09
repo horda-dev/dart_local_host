@@ -275,10 +275,13 @@ class MemoryMessageStore implements MessageStore {
     required FromJsonFun<E> fac,
   }) async {
     final cmdId = sendEntity(entityName, entityId, from, cmd);
-    final eventEnv = await entityEvents(
-      entityId: entityId,
-      commandId: cmdId,
-    ).timeout(const Duration(milliseconds: 500)).first;
+    final eventEnv = await _firstWithTimeoutLogging(
+      stream: entityEvents(
+        entityId: entityId,
+        commandId: cmdId,
+      ),
+      waitingFor: 'entity event for $entityName/$entityId (commandId: $cmdId)',
+    );
 
     // Check if the handler threw an error
     if (eventEnv.type == 'FluirErrorEvent') {
@@ -315,10 +318,13 @@ class MemoryMessageStore implements MessageStore {
     };
 
     final cmdId = sendEntity(entityName, entityId, from, cmd);
-    final eventEnv = await entityEvents(
-      entityId: entityId,
-      commandId: cmdId,
-    ).timeout(const Duration(milliseconds: 500)).first;
+    final eventEnv = await _firstWithTimeoutLogging(
+      stream: entityEvents(
+        entityId: entityId,
+        commandId: cmdId,
+      ),
+      waitingFor: 'entity event for $entityName/$entityId (commandId: $cmdId)',
+    );
 
     // Check if the handler threw an error
     if (eventEnv.type == 'FluirErrorEvent') {
@@ -422,10 +428,13 @@ class MemoryMessageStore implements MessageStore {
     required FromJsonFun<E> fac,
   }) async {
     final cmdId = sendService(serviceName, from, cmd);
-    final eventEnv = await serviceEvents(
-      serviceName: serviceName,
-      commandId: cmdId,
-    ).timeout(const Duration(seconds: 10)).first;
+    final eventEnv = await _firstWithTimeoutLogging(
+      stream: serviceEvents(
+        serviceName: serviceName,
+        commandId: cmdId,
+      ),
+      waitingFor: 'service event for $serviceName (commandId: $cmdId)',
+    );
 
     // Check if the handler threw an error
     if (eventEnv.type == 'FluirErrorEvent') {
@@ -461,10 +470,13 @@ class MemoryMessageStore implements MessageStore {
     };
 
     final cmdId = sendService(serviceName, from, cmd);
-    final eventEnv = await serviceEvents(
-      serviceName: serviceName,
-      commandId: cmdId,
-    ).timeout(const Duration(seconds: 10)).first;
+    final eventEnv = await _firstWithTimeoutLogging(
+      stream: serviceEvents(
+        serviceName: serviceName,
+        commandId: cmdId,
+      ),
+      waitingFor: 'service event for $serviceName (commandId: $cmdId)',
+    );
 
     // Check if the handler threw an error
     if (eventEnv.type == 'FluirErrorEvent') {
@@ -536,9 +548,12 @@ class MemoryMessageStore implements MessageStore {
     RemoteEvent event,
   ) async {
     final dispatchId = _dispatchEvent(from, event);
-    final resultEnv = await processResults(
-      dispatchId: dispatchId,
-    ).timeout(const Duration(seconds: 10)).first;
+    final resultEnv = await _firstWithTimeoutLogging(
+      stream: processResults(
+        dispatchId: dispatchId,
+      ),
+      waitingFor: 'process result for dispatch id $dispatchId',
+    );
     return resultEnv.result;
   }
 
@@ -549,9 +564,12 @@ class MemoryMessageStore implements MessageStore {
     Map<String, dynamic> eventJson,
   ) async {
     final dispatchId = _dispatchEventJson(from, eventType, eventJson);
-    final resultEnv = await processResults(
-      dispatchId: dispatchId,
-    ).timeout(const Duration(seconds: 10)).first;
+    final resultEnv = await _firstWithTimeoutLogging(
+      stream: processResults(
+        dispatchId: dispatchId,
+      ),
+      waitingFor: 'process result for dispatch id $dispatchId',
+    );
     return resultEnv.result;
   }
 
@@ -805,6 +823,30 @@ class MemoryMessageStore implements MessageStore {
     }
 
     return '$entityName/$id/$name';
+  }
+
+  Future<T> _firstWithTimeoutLogging<T>({
+    required Stream<T> stream,
+    required String waitingFor,
+    Duration logInterval = const Duration(seconds: 10),
+  }) async {
+    var waitedMs = 0;
+
+    final waitLogTimer = Timer.periodic(logInterval, (_) {
+      waitedMs += logInterval.inMilliseconds;
+
+      final timeWaited = waitedMs < 1000
+          ? '${waitedMs}ms'
+          : '${waitedMs ~/ 1000}s';
+
+      logger.warning('waiting for $waitingFor, no result after $timeWaited');
+    });
+
+    try {
+      return await stream.first;
+    } finally {
+      waitLogTimer.cancel();
+    }
   }
 
   // maps actor id to command log
