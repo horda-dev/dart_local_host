@@ -1,3 +1,7 @@
+## 0.11.2
+
+- **FIX**: Do not fail query if attribute snapshot is not found.
+
 ## 0.11.1
 
 - **FIX**: replace stream timeouts with warning logs to prevent server crash on long running processes and command handlers
