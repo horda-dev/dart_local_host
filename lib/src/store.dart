@@ -653,7 +653,9 @@ class MemoryMessageStore implements MessageStore {
     final logId = _viewOrAttrKey(entityName, id, name);
     final log = _changeStore[logId];
     if (log == null) {
-      logger.info('changes: no log found for $fullName');
+      logger.info(
+        'changes: no log found for $entityName/$id/$name, returning empty envelop',
+      );
       return [
         ChangeEnvelop.empty(entityName: entityName, key: id, name: name),
       ];
@@ -665,7 +667,7 @@ class MemoryMessageStore implements MessageStore {
     );
     if (idx == -1) {
       logger.info(
-        'changes: no changes found for $fullName starting at $startAt',
+        'changes: no changes found for $entityName/$id/$name starting at $startAt, returning empty envelop',
       );
       return [
         ChangeEnvelop.empty(entityName: entityName, key: id, name: name),
@@ -992,7 +994,7 @@ class MemoryViewStore implements ViewStore {
     try {
       final viewKey = '$entityName/$entityId/$viewName';
       snap = await snapStore.get(viewKey);
-    } on FluirError {
+    } on SnapshotNotFoundError {
       final defaultKey = '$entityName/__default/$viewName';
       snap = await snapStore.get(defaultKey);
     }
@@ -1094,12 +1096,16 @@ class MemoryViewStore implements ViewStore {
         // getting attributes values if requested
         final attrs = <String, dynamic>{};
         for (final attr in view.attrs) {
-          final attrSnap = await attributeSnapshot(
-            actorId,
-            viewSnap.value,
-            attr,
-          );
-          attrs[attr] = attrSnap.toJson();
+          try {
+            final attrSnap = await attributeSnapshot(
+              actorId,
+              viewSnap.value,
+              attr,
+            );
+            attrs[attr] = attrSnap.toJson();
+          } on SnapshotNotFoundError catch (_) {
+            // Attribute snapshot does not exist yet. Continue query.
+          }
         }
 
         // running subquery (recursively collects changeIDs and pages if provided)
@@ -1149,12 +1155,16 @@ class MemoryViewStore implements ViewStore {
           // getting attr values for item id
           final itemAttrs = <String, dynamic>{};
           for (final attrName in view.attrs) {
-            final attrSnap = await attributeSnapshot(
-              actorId,
-              itemId,
-              attrName,
-            );
-            itemAttrs[attrName] = attrSnap.toJson();
+            try {
+              final attrSnap = await attributeSnapshot(
+                actorId,
+                itemId,
+                attrName,
+              );
+              itemAttrs[attrName] = attrSnap.toJson();
+            } on SnapshotNotFoundError catch (_) {
+              // Attribute snapshot does not exist yet. Continue query.
+            }
           }
 
           if (itemAttrs.isNotEmpty) {
@@ -1202,7 +1212,7 @@ class MemoryViewStore implements ViewStore {
       try {
         currentSnap = await snapStore.get(snapKey);
         currentValue = currentSnap.value;
-      } on FluirError catch (_) {
+      } on SnapshotNotFoundError catch (_) {
         logger.fine(
           'Attribute snapshot not found, attribute will be initialized',
         );
@@ -1497,6 +1507,14 @@ class MemoryViewStore implements ViewStore {
   double _nextListPosition() => ++_listPositionCounter;
 }
 
+/// Thrown by [KeyValueStore.get] when no snapshot is stored for the key.
+final class SnapshotNotFoundError extends FluirError {
+  SnapshotNotFoundError(this.key) : super('key $key not found');
+
+  /// Store key that has no snapshot.
+  final String key;
+}
+
 abstract class KeyValueStore {
   Future<void> start();
 
@@ -1531,7 +1549,7 @@ final class MemKeyValueStore implements KeyValueStore {
   Future<ViewSnapshot> get(String key) async {
     final snap = _store[key];
     if (snap == null) {
-      throw FluirError('key $key not found');
+      throw SnapshotNotFoundError(key);
     }
     return snap;
   }
