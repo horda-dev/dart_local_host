@@ -230,7 +230,7 @@ class AnalyzedPackage {
       return viewGroups.values.firstWhere(
         (vg) => vg.name == '${prefix}ViewGroup',
       );
-    } on StateError catch (e, _) {
+    } on StateError {
       // print('Failed to find viewgroup for $actorName, prefix $prefix: $e');
       // print('Stack:\n$s');
       throw Exception(
